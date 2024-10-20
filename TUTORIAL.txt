@@ -1,0 +1,9 @@
+5. Modules in Unreal: plugin add empty. choose the games -> extendeditor-> plugins -> supermanager -> SuperManager.uplugin
+		"Modules": [
+		{
+			"Name": "SuperManager",
+			"Type": "Editor",
+			"LoadingPhase": "PreDefault"
+		}
+	]
+
