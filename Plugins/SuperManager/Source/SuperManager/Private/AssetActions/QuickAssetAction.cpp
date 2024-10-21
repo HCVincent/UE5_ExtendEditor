@@ -127,3 +127,59 @@ void UQuickAssetAction::FixUpRedirectors()
 		FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
 	AssetToolsModule.Get().FixupReferencers(RedirectorsToFixArray);
 }
+
+void UQuickAssetAction::RenameAssets(const FString& NamePattern, const FString& ReplaceWith, bool bPreviewOnly)
+{
+	// Get all the selected asset data
+	TArray<FAssetData> SelectedAssetsData = UEditorUtilityLibrary::GetSelectedAssetData();
+	uint32 Counter = 0;
+
+	if (SelectedAssetsData.Num() == 0)
+	{
+		ShowMsgDialog(EAppMsgType::Ok, TEXT("No assets selected for renaming"));
+		return;
+	}
+
+	for (const FAssetData& SelectedAssetData : SelectedAssetsData)
+	{
+		FString OldName = SelectedAssetData.AssetName.ToString();
+
+		// Check if the old name matches the pattern (sub-string match)
+		if (OldName.Contains(NamePattern))
+		{
+			// Generate the new name by replacing the pattern with the provided replacement string
+			FString NewName = OldName.Replace(*NamePattern, *ReplaceWith);
+
+			// Create the new asset path using the updated name
+			FString NewAssetPath = FPaths::Combine(SelectedAssetData.PackagePath.ToString(), NewName);
+
+			// If it's a preview only, just print the names
+			if (bPreviewOnly)
+			{
+				Print(TEXT("Preview: ") + OldName + TEXT(" would be renamed to ") + NewName, FColor::Yellow);
+			}
+			else
+			{
+				// Attempt to rename the asset
+				if (UEditorAssetLibrary::RenameAsset(SelectedAssetData.ObjectPath.ToString(), NewAssetPath))
+				{
+					++Counter;
+					Print(TEXT("Renamed: ") + OldName + TEXT(" to ") + NewName, FColor::Green);
+				}
+				else
+				{
+					Print(TEXT("Failed to rename asset: ") + OldName, FColor::Red);
+				}
+			}
+		}
+	}
+
+	if (Counter > 0)
+	{
+		ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(Counter) + " assets"));
+	}
+	else if (!bPreviewOnly)
+	{
+		ShowMsgDialog(EAppMsgType::Ok, TEXT("No assets were renamed"));
+	}
+}

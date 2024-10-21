@@ -33,6 +33,9 @@ public:
 	UFUNCTION(CallInEditor)
 	void RemoveUnusedAssets();
 
+	UFUNCTION(CallInEditor)
+	void RenameAssets(const FString& NamePattern, const FString& ReplaceWith, bool bPreviewOnly);
+
 private:
 	TMap<UClass*, FString>PrefixMap =
 	{
@@ -53,4 +56,6 @@ private:
 	};
 
 	void FixUpRedirectors();
+	
+	
 };
