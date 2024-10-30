@@ -10,11 +10,12 @@
 #include "AssetToolsModule.h"
 
 
+
 void UQuickAssetAction::DuplicateAssets(int32 NumOfDuplicates)
 {
 	if (NumOfDuplicates <= 0)
 	{
-		ShowMsgDialog(EAppMsgType::Ok, TEXT("Please enter a VALID number"));
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please enter a VALID number"));
 		return;
 	}
 
@@ -39,8 +40,8 @@ void UQuickAssetAction::DuplicateAssets(int32 NumOfDuplicates)
 
 	if (Counter > 0)
 	{
-		ShowNotifyInfo(TEXT("Successfully duplicated " + FString::FromInt(Counter) + " files"));
-		/*Print(TEXT("Successfully duplicated " + FString::FromInt(Counter) + " files"),FColor::Green);*/
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully duplicated " + FString::FromInt(Counter) + " files"));
+		/*DebugHeader::Print(TEXT("Successfully duplicated " + FString::FromInt(Counter) + " files"),FColor::Green);*/
 	}
 }
 
@@ -54,13 +55,13 @@ void UQuickAssetAction::AddPrefixes()
 		FString* PrefixFound = PrefixMap.Find(SelectedObject->GetClass());
 		if (!PrefixFound || PrefixFound->IsEmpty())
 		{
-			Print(TEXT("Failed to find prefix for class ") + SelectedObject->GetClass()->GetName(), FColor::Red);
+			DebugHeader::Print(TEXT("Failed to find prefix for class ") + SelectedObject->GetClass()->GetName(), FColor::Red);
 			continue;
 		}
 		FString OldName = SelectedObject->GetName();
 		if (OldName.StartsWith(*PrefixFound))
 		{
-			Print(OldName + TEXT(" already has prefix added"), FColor::Red);
+			DebugHeader::Print(OldName + TEXT(" already has prefix added"), FColor::Red);
 			continue;
 		}
 		if (SelectedObject->IsA<UMaterialInstanceConstant>())
@@ -74,7 +75,7 @@ void UQuickAssetAction::AddPrefixes()
 	}
 	if (Counter > 0)
 	{
-		ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(Counter) + " assets"));
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(Counter) + " assets"));
 	}
 }
 
@@ -85,7 +86,7 @@ void UQuickAssetAction::RemoveUnusedAssets()
 	TArray<FAssetData> UnusedAssetsData;
 
 	FixUpRedirectors();
-
+	
 	for (const FAssetData& SelectedAssetData : SelectedAssetsData)
 	{
 		TArray<FString> AssetRefrencers =
@@ -97,12 +98,12 @@ void UQuickAssetAction::RemoveUnusedAssets()
 	}
 	if (UnusedAssetsData.Num() == 0)
 	{
-		ShowMsgDialog(EAppMsgType::Ok, TEXT("No unused asset found among selected assets"), false);
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("No unused asset found among selected assets"), false);
 		return;
 	}
 	const int32 NumOfAssetsDeleted = ObjectTools::DeleteAssets(UnusedAssetsData);
 	if (NumOfAssetsDeleted == 0) return;
-	ShowNotifyInfo(TEXT("Successfully deleted " + FString::FromInt(NumOfAssetsDeleted) + TEXT(" unused assets")));
+	DebugHeader::ShowNotifyInfo(TEXT("Successfully deleted " + FString::FromInt(NumOfAssetsDeleted) + TEXT(" unused assets")));
 }
 
 void UQuickAssetAction::FixUpRedirectors()
@@ -136,7 +137,7 @@ void UQuickAssetAction::RenameAssets(const FString& NamePattern, const FString& 
 
 	if (SelectedAssetsData.Num() == 0)
 	{
-		ShowMsgDialog(EAppMsgType::Ok, TEXT("No assets selected for renaming"));
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("No assets selected for renaming"));
 		return;
 	}
 
@@ -156,7 +157,7 @@ void UQuickAssetAction::RenameAssets(const FString& NamePattern, const FString& 
 			// If it's a preview only, just print the names
 			if (bPreviewOnly)
 			{
-				Print(TEXT("Preview: ") + OldName + TEXT(" would be renamed to ") + NewName, FColor::Yellow);
+				DebugHeader::Print(TEXT("Preview: ") + OldName + TEXT(" would be renamed to ") + NewName, FColor::Yellow);
 			}
 			else
 			{
@@ -164,11 +165,11 @@ void UQuickAssetAction::RenameAssets(const FString& NamePattern, const FString& 
 				if (UEditorAssetLibrary::RenameAsset(SelectedAssetData.ObjectPath.ToString(), NewAssetPath))
 				{
 					++Counter;
-					Print(TEXT("Renamed: ") + OldName + TEXT(" to ") + NewName, FColor::Green);
+					DebugHeader::Print(TEXT("Renamed: ") + OldName + TEXT(" to ") + NewName, FColor::Green);
 				}
 				else
 				{
-					Print(TEXT("Failed to rename asset: ") + OldName, FColor::Red);
+					DebugHeader::Print(TEXT("Failed to rename asset: ") + OldName, FColor::Red);
 				}
 			}
 		}
@@ -176,10 +177,10 @@ void UQuickAssetAction::RenameAssets(const FString& NamePattern, const FString& 
 
 	if (Counter > 0)
 	{
-		ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(Counter) + " assets"));
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(Counter) + " assets"));
 	}
 	else if (!bPreviewOnly)
 	{
-		ShowMsgDialog(EAppMsgType::Ok, TEXT("No assets were renamed"));
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("No assets were renamed"));
 	}
 }
