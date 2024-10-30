@@ -20,7 +20,7 @@ private:
 	TSharedRef<FExtender> CustomCBMenuExtender(const TArray<FString>& SelectedPaths);
 	TArray<FString> FolderPathsSelected;
 	void AddCBMenuEntry(class FMenuBuilder& MenuBuilder);
-	void OnDeleteUnsuedAssetButtonClicked();
+	void OnDeleteUnusedAssetClicked();
 #pragma endregion
 };
 
