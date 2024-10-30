@@ -6,7 +6,7 @@
 
 namespace DebugHeader
 {
-	void Prt(const FString& Message, const FColor& Color)
+	void PrtText(const FString& Message, const FColor& Color)
 	{
 		if (GEngine)
 		{

@@ -55,13 +55,13 @@ void UQuickAssetAction::AddPrefixes()
 		FString* PrefixFound = PrefixMap.Find(SelectedObject->GetClass());
 		if (!PrefixFound || PrefixFound->IsEmpty())
 		{
-			DebugHeader::Prt(TEXT("Failed to find prefix for class ") + SelectedObject->GetClass()->GetName(), FColor::Red);
+			DebugHeader::PrtText(TEXT("Failed to find prefix for class ") + SelectedObject->GetClass()->GetName(), FColor::Red);
 			continue;
 		}
 		FString OldName = SelectedObject->GetName();
 		if (OldName.StartsWith(*PrefixFound))
 		{
-			DebugHeader::Prt(OldName + TEXT(" already has prefix added"), FColor::Red);
+			DebugHeader::PrtText(OldName + TEXT(" already has prefix added"), FColor::Red);
 			continue;
 		}
 		if (SelectedObject->IsA<UMaterialInstanceConstant>())
@@ -157,7 +157,7 @@ void UQuickAssetAction::RenameAssets(const FString& NamePattern, const FString& 
 			// If it's a preview only, just print the names
 			if (bPreviewOnly)
 			{
-				DebugHeader::Prt(TEXT("Preview: ") + OldName + TEXT(" would be renamed to ") + NewName, FColor::Yellow);
+				DebugHeader::PrtText(TEXT("Preview: ") + OldName + TEXT(" would be renamed to ") + NewName, FColor::Yellow);
 			}
 			else
 			{
@@ -165,11 +165,11 @@ void UQuickAssetAction::RenameAssets(const FString& NamePattern, const FString& 
 				if (UEditorAssetLibrary::RenameAsset(SelectedAssetData.ObjectPath.ToString(), NewAssetPath))
 				{
 					++Counter;
-					DebugHeader::Prt(TEXT("Renamed: ") + OldName + TEXT(" to ") + NewName, FColor::Green);
+					DebugHeader::PrtText(TEXT("Renamed: ") + OldName + TEXT(" to ") + NewName, FColor::Green);
 				}
 				else
 				{
-					DebugHeader::Prt(TEXT("Failed to rename asset: ") + OldName, FColor::Red);
+					DebugHeader::PrtText(TEXT("Failed to rename asset: ") + OldName, FColor::Red);
 				}
 			}
 		}
