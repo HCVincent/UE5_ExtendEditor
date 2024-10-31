@@ -4,9 +4,9 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 
-namespace DebugHeader
+namespace  DebugHeader
 {
-	void Print(const FString& Message, const FColor& Color)
+	static void Print(const FString& Message, const FColor& Color)
 	{
 		if (GEngine)
 		{
@@ -14,11 +14,11 @@ namespace DebugHeader
 		}
 	}
 
-	void PrtLog(const FString& Message)
+	static void PrtLog(const FString& Message)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s"), *Message);
 	}
-	EAppReturnType::Type ShowMsgDialog(EAppMsgType::Type MsgType, const FString& Message,
+	static EAppReturnType::Type ShowMsgDialog(EAppMsgType::Type MsgType, const FString& Message,
 		bool bShowMsgAsWarning = true)
 	{
 		if (bShowMsgAsWarning)
@@ -31,7 +31,7 @@ namespace DebugHeader
 			return FMessageDialog::Open(MsgType, FText::FromString(Message));
 		}
 	}
-	void ShowNInfo(const FString& Message)
+	static void ShowNInfo(const FString& Message)
 	{
 		FNotificationInfo NotifyInfo(FText::FromString(Message));
 		NotifyInfo.bUseLargeFont = true;

@@ -21,6 +21,7 @@ private:
 	TArray<FString> FolderPathsSelected;
 	void AddCBMenuEntry(class FMenuBuilder& MenuBuilder);
 	void OnDeleteUnusedAssetClicked();
+	void OnDeleteEmptyFoldersButtonClicked();
 	void FixUpRedirectors();
 #pragma endregion
 };
