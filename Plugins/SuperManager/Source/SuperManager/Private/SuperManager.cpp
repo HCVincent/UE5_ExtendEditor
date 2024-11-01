@@ -13,13 +13,10 @@
 void FSuperManagerModule::StartupModule()
 {
 	InitCBMenuExtention();
+	RegisterAdvanceDeletionTab();
 }
 
-void FSuperManagerModule::ShutdownModule()
-{
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-}
+
 
 #pragma region ContentBrowserMenuExtention
 void FSuperManagerModule::InitCBMenuExtention()
@@ -68,6 +65,13 @@ void FSuperManagerModule::AddCBMenuEntry(FMenuBuilder& MenuBuilder)
 		FText::FromString(TEXT("Safely delete all empty folders")), //Tooltip text
 		FSlateIcon(),	//Custom icon
 		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked) //The actual function to excute
+	);
+	MenuBuilder.AddMenuEntry
+	(
+		FText::FromString(TEXT("Advance Deletion")), //Title text for menu entry
+		FText::FromString(TEXT("List assets by specific condition in a tab for deleting")), //Tooltip text
+		FSlateIcon(),	//Custom icon
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnAdvanceDeletionButtonClicked) //The actual function to excute
 	);
 }
 
@@ -178,6 +182,11 @@ void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 	}
 }
 
+void FSuperManagerModule::OnAdvanceDeletionButtonClicked()
+{
+	FGlobalTabmanager::Get()->TryInvokeTab(FName("AdvanceDeletion"));
+}
+
 void FSuperManagerModule::FixUpRedirectors()
 {
 	TArray<UObjectRedirector*> RedirectorsToFixArray;
@@ -201,10 +210,28 @@ void FSuperManagerModule::FixUpRedirectors()
 	AssetToolsModule.Get().FixupReferencers(RedirectorsToFixArray);
 }
 
-
-
-
 #pragma endregion
+
+#pragma region CustomEditorTab
+
+void FSuperManagerModule::RegisterAdvanceDeletionTab()
+{
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FName("AdvanceDeletion"),
+		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvanceDeltionTab))
+		.SetDisplayName(FText::FromString(TEXT("Advance Deletion")));
+}
+TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeltionTab(const FSpawnTabArgs&)
+{
+	return
+		SNew(SDockTab).TabRole(ETabRole::NomadTab);
+}
+#pragma endregion
+
+void FSuperManagerModule::ShutdownModule()
+{
+	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+	// we call this function before unloading the module.
+}
 
 #undef LOCTEXT_NAMESPACE
 	
