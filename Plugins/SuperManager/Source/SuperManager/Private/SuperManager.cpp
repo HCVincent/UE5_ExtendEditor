@@ -224,10 +224,16 @@ void FSuperManagerModule::RegisterAdvanceDeletionTab()
 
 TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeltionTab(const FSpawnTabArgs&SpawnTabArgs)
 {
+	TArray<TSharedPtr<FAssetData>> AssetsData;
+	if (FolderPathsSelected.Num() > 0)
+	{
+		AssetsData = GetAllAssetDataUnderSelectedFolder();
+	}
+
 	return SNew(SDockTab).TabRole(ETabRole::NomadTab)
 		[
 			SNew(SAdvanceDeletionTab)
-				.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
+				.AssetsDataToStore(AssetsData)
 		];
 }
 
