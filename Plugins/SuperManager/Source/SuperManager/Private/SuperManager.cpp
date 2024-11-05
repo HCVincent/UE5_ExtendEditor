@@ -218,11 +218,11 @@ void FSuperManagerModule::FixUpRedirectors()
 void FSuperManagerModule::RegisterAdvanceDeletionTab()
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FName("AdvanceDeletion"),
-		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvanceDeltionTab))
+		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvanceDeletionTab))
 		.SetDisplayName(FText::FromString(TEXT("Advance Deletion")));
 }
 
-TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeltionTab(const FSpawnTabArgs&SpawnTabArgs)
+TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawnTabArgs&SpawnTabArgs)
 {
 	TArray<TSharedPtr<FAssetData>> AssetsData;
 	if (FolderPathsSelected.Num() > 0)
