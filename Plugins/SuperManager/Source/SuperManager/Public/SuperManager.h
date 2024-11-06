@@ -33,5 +33,10 @@ private:
 
 	TArray< TSharedPtr <FAssetData> > GetAllAssetDataUnderSelectedFolder();
 #pragma endregion
+
+public:
+#pragma region ProccessDataForAdvanceDeletionTab
+	bool DeleteSingleAssetForAssetList(const FAssetData& AssetDataToDelete);
+#pragma endregion
 };
 
