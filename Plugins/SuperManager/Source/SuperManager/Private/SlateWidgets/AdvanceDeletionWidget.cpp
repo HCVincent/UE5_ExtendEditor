@@ -47,14 +47,20 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 
 						+ SScrollBox::Slot()
 						[
-							SNew(SListView< TSharedPtr <FAssetData> >)
-								.ItemHeight(24.f)
-								.ListItemsSource(&StoredAssetsData)
-								.OnGenerateRow(this, &SAdvanceDeletionTab::OnGenerateRowForList)
+							ConstructAssetListView()
 						]
 				]
 		];
 
+}
+
+TSharedRef<SListView<TSharedPtr<FAssetData>>> SAdvanceDeletionTab::ConstructAssetListView()
+{
+	ConstructedAssetListView = SNew(SListView< TSharedPtr <FAssetData> >)
+		.ItemHeight(24.f)
+		.ListItemsSource(&StoredAssetsData)
+		.OnGenerateRow(this, &SAdvanceDeletionTab::OnGenerateRowForList);
+	return ConstructedAssetListView.ToSharedRef();
 }
 
 TSharedRef<ITableRow> SAdvanceDeletionTab::OnGenerateRowForList(TSharedPtr<FAssetData> AssetDataToDisplay, const TSharedRef<STableViewBase>& OwnerTable)
@@ -157,7 +163,21 @@ FReply SAdvanceDeletionTab::OnDeleteButtonClicked(TSharedPtr<FAssetData> Clicked
 	const bool bAssetDeleted = SuperManagerModule.DeleteSingleAssetForAssetList(*ClickedAssetData.Get());
 	if (bAssetDeleted)
 	{
-		//Refresh the list 
+		//Updating the list source items
+		if (StoredAssetsData.Contains(ClickedAssetData))
+		{
+			StoredAssetsData.Remove(ClickedAssetData);
+		}
+		//Refresh the list
+		RefreshAssetListView();
 	}
 	return FReply::Handled();
+}
+
+void SAdvanceDeletionTab::RefreshAssetListView()
+{
+	if (ConstructedAssetListView.IsValid())
+	{
+		ConstructedAssetListView->RebuildList();
+	}
 }
