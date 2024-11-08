@@ -14,9 +14,9 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 	FSlateFontInfo TitleTextFont = FCoreStyle::Get().GetFontStyle(FName("EmbossedText"));
 	TitleTextFont.Size = 30;
 	ChildSlot
-		[
-			//Main vertical box
+		[	//Main vertical box
 			SNew(SVerticalBox)
+
 				//First vertical slot for title text
 				+ SVerticalBox::Slot()
 				.AutoHeight()
@@ -27,27 +27,51 @@ void SAdvanceDeletionTab::Construct(const FArguments& InArgs)
 						.Justification(ETextJustify::Center)
 						.ColorAndOpacity(FColor::White)
 				]
+
 				//SecondSlot for drop down to specify the listing condition and help text
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
 					SNew(SHorizontalBox)
 				]
+
 				//Third slot for the asset list
 				+ SVerticalBox::Slot()
 				.VAlign(VAlign_Fill)
-				[
-					SNew(SScrollBox)
-				]
-				//Fourth slot for 3 buttons
-				+ SVerticalBox::Slot()
-				.AutoHeight()
 				[
 					SNew(SScrollBox)
 
 						+ SScrollBox::Slot()
 						[
 							ConstructAssetListView()
+						]
+				]
+
+				//Fourth slot for 3 buttons
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+						//Button1 slot
+						+ SHorizontalBox::Slot()
+						.FillWidth(10.f)
+						.Padding(5.f)
+						[
+							ConstructDeleteAllButton()
+						]
+						//Button2 slot
+						+ SHorizontalBox::Slot()
+						.FillWidth(10.f)
+						.Padding(5.f)
+						[
+							ConstructSelectAllButton()
+						]
+						//Button3 slot
+						+ SHorizontalBox::Slot()
+						.FillWidth(10.f)
+						.Padding(5.f)
+						[
+							ConstructDeselectAllButton()
 						]
 				]
 		];
@@ -62,6 +86,15 @@ TSharedRef<SListView<TSharedPtr<FAssetData>>> SAdvanceDeletionTab::ConstructAsse
 		.OnGenerateRow(this, &SAdvanceDeletionTab::OnGenerateRowForList);
 	return ConstructedAssetListView.ToSharedRef();
 }
+
+void SAdvanceDeletionTab::RefreshAssetListView()
+{
+	if (ConstructedAssetListView.IsValid())
+	{
+		ConstructedAssetListView->RebuildList();
+	}
+}
+#pragma region RowWidgetForAssetListView
 
 TSharedRef<ITableRow> SAdvanceDeletionTab::OnGenerateRowForList(TSharedPtr<FAssetData> AssetDataToDisplay, const TSharedRef<STableViewBase>& OwnerTable)
 {
@@ -174,10 +207,53 @@ FReply SAdvanceDeletionTab::OnDeleteButtonClicked(TSharedPtr<FAssetData> Clicked
 	return FReply::Handled();
 }
 
-void SAdvanceDeletionTab::RefreshAssetListView()
+#pragma endregion
+TSharedRef<SButton> SAdvanceDeletionTab::ConstructDeleteAllButton()
 {
-	if (ConstructedAssetListView.IsValid())
-	{
-		ConstructedAssetListView->RebuildList();
-	}
+	TSharedRef<SButton> DeleteAllButton = SNew(SButton)
+		.ContentPadding(FMargin(5.f))
+		.OnClicked(this, &SAdvanceDeletionTab::OnDeleteAllButtonClicked);
+	DeleteAllButton->SetContent(ConstructTextForTabButtons(TEXT("Delete All")));
+	return DeleteAllButton;
+}
+FReply SAdvanceDeletionTab::OnDeleteAllButtonClicked()
+{
+	DebugHeader::Print(TEXT("Delete All Button Clicked"), FColor::Cyan);
+	return FReply::Handled();
+}
+TSharedRef<SButton> SAdvanceDeletionTab::ConstructSelectAllButton()
+{
+	TSharedRef<SButton> SelectAllButton = SNew(SButton)
+		.ContentPadding(FMargin(5.f))
+		.OnClicked(this, &SAdvanceDeletionTab::OnSelectAllButtonClicked);
+	SelectAllButton->SetContent(ConstructTextForTabButtons(TEXT("Select All")));
+	return SelectAllButton;
+}
+FReply SAdvanceDeletionTab::OnSelectAllButtonClicked()
+{
+	DebugHeader::Print(TEXT("Select All Button Clicked"), FColor::Cyan);
+	return FReply::Handled();
+}
+TSharedRef<SButton> SAdvanceDeletionTab::ConstructDeselectAllButton()
+{
+	TSharedRef<SButton> DeselectAllButton = SNew(SButton)
+		.ContentPadding(FMargin(5.f))
+		.OnClicked(this, &SAdvanceDeletionTab::OnDeselectAllButtonClicked);
+	DeselectAllButton->SetContent(ConstructTextForTabButtons(TEXT("Deselect All")));
+	return DeselectAllButton;
+}
+FReply SAdvanceDeletionTab::OnDeselectAllButtonClicked()
+{
+	DebugHeader::Print(TEXT("Deselect All Button Clicked"), FColor::Cyan);
+	return FReply::Handled();
+}
+TSharedRef<STextBlock> SAdvanceDeletionTab::ConstructTextForTabButtons(const FString& TextContent)
+{
+	FSlateFontInfo ButtonTextFont = GetEmboseedTextFont();
+	ButtonTextFont.Size = 15;
+	TSharedRef<STextBlock> ConstructedTextBlock = SNew(STextBlock)
+		.Text(FText::FromString(TextContent))
+		.Font(ButtonTextFont)
+		.Justification(ETextJustify::Center);
+	return ConstructedTextBlock;
 }

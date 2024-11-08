@@ -22,5 +22,14 @@ private:
 	TSharedRef<SButton> ConstructButtonForRowWidget(const TSharedPtr<FAssetData>& AssetDataToDisplay);
 	FReply OnDeleteButtonClicked(TSharedPtr<FAssetData> ClickedAssetData);
 
+
+	TSharedRef<SButton> ConstructDeleteAllButton();
+	TSharedRef<SButton> ConstructSelectAllButton();
+	TSharedRef<SButton> ConstructDeselectAllButton();
+	FReply OnDeleteAllButtonClicked();
+	FReply OnSelectAllButtonClicked();
+	FReply OnDeselectAllButtonClicked();
+	TSharedRef<STextBlock> ConstructTextForTabButtons(const FString& TextContent);
+
 	FSlateFontInfo GetEmboseedTextFont() const { return FCoreStyle::Get().GetFontStyle(FName("EmbossedText")); }
 };
