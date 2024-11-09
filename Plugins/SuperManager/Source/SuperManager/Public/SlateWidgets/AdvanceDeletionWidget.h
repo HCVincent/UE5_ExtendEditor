@@ -10,7 +10,9 @@ class SAdvanceDeletionTab : public SCompoundWidget
 public:
 	void Construct(const FArguments& InArgs);
 private:
-	TArray< TSharedPtr <FAssetData> > StoredAssetsData;
+	TArray< TSharedPtr <FAssetData> > StoredAssetsData; 
+	TArray< TSharedRef <SCheckBox> > CheckBoxesArray;
+	TArray< TSharedPtr < FAssetData> > AssetsDataToDeleteArray;
 	TSharedRef< SListView< TSharedPtr <FAssetData> > > ConstructAssetListView();
 	TSharedPtr< SListView< TSharedPtr <FAssetData> > > ConstructedAssetListView;
 	void RefreshAssetListView();
@@ -33,6 +35,5 @@ private:
 	FReply OnDeselectAllButtonClicked();
 	TSharedRef<STextBlock> ConstructTextForTabButtons(const FString& TextContent);
 #pragma endregion
-	TArray< TSharedPtr < FAssetData> > AssetsDataToDeleteArray;
 	FSlateFontInfo GetEmboseedTextFont() const { return FCoreStyle::Get().GetFontStyle(FName("EmbossedText")); }
 };
