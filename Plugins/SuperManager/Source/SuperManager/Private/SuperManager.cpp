@@ -280,6 +280,15 @@ void FSuperManagerModule::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
+bool FSuperManagerModule::DeleteMultipleAssetsForAssetList(const TArray<FAssetData>& AssetsToDelete)
+{
+	if (ObjectTools::DeleteAssets(AssetsToDelete) > 0)
+	{
+		return true;
+	}
+	return false;
+}
+
 #undef LOCTEXT_NAMESPACE
 	
 IMPLEMENT_MODULE(FSuperManagerModule, SuperManager)
