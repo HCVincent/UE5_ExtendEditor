@@ -11,6 +11,7 @@ public:
 	void Construct(const FArguments& InArgs);
 private:
 	TArray< TSharedPtr <FAssetData> > StoredAssetsData; 
+	TArray< TSharedPtr <FAssetData> > DisplayedAssetsData;
 	TArray< TSharedRef <SCheckBox> > CheckBoxesArray;
 	TArray< TSharedPtr < FAssetData> > AssetsDataToDeleteArray;
 	TSharedRef< SListView< TSharedPtr <FAssetData> > > ConstructAssetListView();
