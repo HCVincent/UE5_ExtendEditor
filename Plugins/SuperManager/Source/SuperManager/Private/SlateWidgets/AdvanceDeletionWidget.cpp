@@ -147,6 +147,8 @@ void SAdvanceDeletionTab::OnComboSelectionChanged(TSharedPtr<FString> SelectedOp
 	if (*SelectedOption.Get() == ListAll)
 	{
 		//List all stored asset data
+		DisplayedAssetsData = StoredAssetsData;
+		RefreshAssetListView();
 	}
 	else if (*SelectedOption.Get() == ListUnused)
 	{
@@ -302,9 +304,14 @@ FReply SAdvanceDeletionTab::OnDeleteAllButtonClicked()
 	{
 		for (const TSharedPtr<FAssetData>& DeletedData : AssetsDataToDeleteArray)
 		{
+			//Updating the stored assets data
 			if (StoredAssetsData.Contains(DeletedData))
 			{
 				StoredAssetsData.Remove(DeletedData);
+			}
+			if (DisplayedAssetsData.Contains(DeletedData))
+			{
+				DisplayedAssetsData.Remove(DeletedData);
 			}
 		}
 		RefreshAssetListView();
