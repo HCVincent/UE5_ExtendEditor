@@ -305,6 +305,32 @@ void FSuperManagerModule::ListUnusedAssetsForAssetList(const TArray<TSharedPtr<F
 	}
 }
 
+void FSuperManagerModule::ListSameNameAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsDataToFilter,
+	TArray<TSharedPtr<FAssetData>>& OutSameNameAssetsData)
+{
+	OutSameNameAssetsData.Empty();
+	//Multimap for supporting finding assets with same name
+	TMultiMap<FString, TSharedPtr<FAssetData> > AssetsInfoMultiMap;
+	for (const TSharedPtr<FAssetData>& DataSharedPtr : AssetsDataToFilter)
+	{
+		AssetsInfoMultiMap.Emplace(DataSharedPtr->AssetName.ToString(), DataSharedPtr);
+	}
+	for (const TSharedPtr<FAssetData>& DataSharedPtr : AssetsDataToFilter)
+	{
+		TArray< TSharedPtr <FAssetData> > OutAssetsData;
+		AssetsInfoMultiMap.MultiFind(DataSharedPtr->AssetName.ToString(), OutAssetsData);
+		if (OutAssetsData.Num() <= 1) continue;
+
+		for (const TSharedPtr<FAssetData>& SameNameData : OutAssetsData)
+		{
+			if (SameNameData.IsValid())
+			{
+				OutSameNameAssetsData.AddUnique(SameNameData);
+			}
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
 	
 IMPLEMENT_MODULE(FSuperManagerModule, SuperManager)
