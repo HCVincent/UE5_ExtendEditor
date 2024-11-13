@@ -276,11 +276,7 @@ bool FSuperManagerModule::DeleteSingleAssetForAssetList(const FAssetData& AssetD
 }
 #pragma endregion
 
-void FSuperManagerModule::ShutdownModule()
-{
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-}
+
 
 bool FSuperManagerModule::DeleteMultipleAssetsForAssetList(const TArray<FAssetData>& AssetsToDelete)
 {
@@ -337,6 +333,14 @@ void FSuperManagerModule::SyncCBToClickedAssetForAssetList(const FString& AssetP
 	TArray<FString> AssetsPathToSync;
 	AssetsPathToSync.Add(AssetPathToSync);
 	UEditorAssetLibrary::SyncBrowserToObjects(AssetsPathToSync);
+}
+
+
+void FSuperManagerModule::ShutdownModule()
+{
+	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+	// we call this function before unloading the module.
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(FName("AdvanceDeletion"));
 }
 
 #undef LOCTEXT_NAMESPACE
