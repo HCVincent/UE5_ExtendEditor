@@ -6,5 +6,13 @@
 void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 {
 	DebugHeader::Print(TEXT("Working"), FColor::Cyan);
+	if (bCustomMaterialName)
+	{
+		if (MaterialName.IsEmpty() || MaterialName.Equals(TEXT("M_")))
+		{
+			DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please enter a valid name"));
+			return;
+		}
+	}
 }
 #pragma endregion
