@@ -1,11 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
+#include "Materials/MaterialExpressionTextureSample.h"
 #include "CoreMinimal.h"
 #include "EditorUtilityWidget.h"
 #include "QuickMaterialCreationWidget.generated.h"
-
 /**
  *
  */
@@ -68,6 +66,11 @@ private:
 	bool ProcessSelectedData(const TArray<FAssetData>& SelectedDataToProccess, TArray<UTexture2D*>& OutSelectedTexturesArray, FString& OutSelectedTexturePackagePath);
 	bool CheckIsNameUsed(const FString& FolderPathToCheck, const FString& MaterialNameToCheck);
 	UMaterial* CreateMaterialAsset(const FString& NameOfTheMaterial, const FString& PathToPutMaterial);
+	void Default_CreateMaterialNodes(UMaterial* CreatedMaterial, UTexture2D* SelectedTexture, uint32& PinsConnectedCounter);
+#pragma endregion
+
+#pragma region CreateMaterialNodes
+	bool TryConnectBaseColor(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 #pragma endregion
 
 };

@@ -21,6 +21,8 @@ void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 	TArray<FAssetData> SelectedAssetsData = UEditorUtilityLibrary::GetSelectedAssetData();
 	TArray<UTexture2D*> SelectedTexturesArray;
 	FString SelectedTextureFolderPath;
+	uint32 PinsConnectedCounter = 0;
+
 	if (!ProcessSelectedData(SelectedAssetsData, SelectedTexturesArray, SelectedTextureFolderPath)) return;
 	DebugHeader::Print(SelectedTextureFolderPath, FColor::Cyan);
 	if (CheckIsNameUsed(SelectedTextureFolderPath, MaterialName)) return;
@@ -29,6 +31,12 @@ void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 	{
 		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Failed to create material"));
 		return;
+	}
+
+	for (UTexture2D* SelectedTexture : SelectedTexturesArray)
+	{
+		if (!SelectedTexture) continue;
+		Default_CreateMaterialNodes(CreatedMaterial, SelectedTexture, PinsConnectedCounter);
 	}
 }
 //Process the selected data, will filter out textures,and return false if non-texture selected
@@ -94,5 +102,42 @@ UMaterial* UQuickMaterialCreationWidget::CreateMaterialAsset(const FString& Name
 	UObject* CreatedObject = AssetToolsModule.Get().CreateAsset(NameOfTheMaterial, PathToPutMaterial,
 		UMaterial::StaticClass(), MaterialFactory);
 	return Cast<UMaterial>(CreatedObject);
+}
+
+void UQuickMaterialCreationWidget::Default_CreateMaterialNodes(UMaterial* CreatedMaterial,
+	UTexture2D* SelectedTexture, uint32& PinsConnectedCounter)
+{
+	UMaterialExpressionTextureSample* TextureSampleNode =
+		NewObject<UMaterialExpressionTextureSample>(CreatedMaterial);
+	if (!TextureSampleNode) return;
+	if (!CreatedMaterial->HasBaseColorConnected())
+	{
+		if (TryConnectBaseColor(TextureSampleNode, SelectedTexture, CreatedMaterial))
+		{
+			PinsConnectedCounter++;
+			return;
+		}
+	}
+}
+#pragma endregion
+
+#pragma region CreateMaterialNodes
+bool UQuickMaterialCreationWidget::TryConnectBaseColor(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
+{
+	for (const FString& BaseColorName : BaseColorArray)
+	{
+		if (SelectedTexture->GetName().Contains(BaseColorName))
+		{
+			//Connect pins to base color socket here
+			TextureSampleNode->Texture = SelectedTexture;
+			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
+
+			CreatedMaterial->GetExpressionInputForProperty(MP_BaseColor)->Connect(0, TextureSampleNode);
+			CreatedMaterial->PostEditChange();
+			TextureSampleNode->MaterialExpressionEditorX -= 600;
+			return true;
+		}
+	}
+	return false;
 }
 #pragma endregion
