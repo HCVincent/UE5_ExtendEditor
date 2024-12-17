@@ -3,6 +3,9 @@
 #include "DebugHeader.h"
 #include "EditorUtilityLibrary.h"
 #include "EditorAssetLibrary.h"
+#include "AssetToolsModule.h"
+#include "Factories/MaterialFactoryNew.h"
+
 #pragma region QuickMaterialCreationCore
 
 void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
@@ -21,6 +24,12 @@ void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 	if (!ProcessSelectedData(SelectedAssetsData, SelectedTexturesArray, SelectedTextureFolderPath)) return;
 	DebugHeader::Print(SelectedTextureFolderPath, FColor::Cyan);
 	if (CheckIsNameUsed(SelectedTextureFolderPath, MaterialName)) return;
+	UMaterial* CreatedMaterial = CreateMaterialAsset(MaterialName, SelectedTextureFolderPath);
+	if (!CreatedMaterial)
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Failed to create material"));
+		return;
+	}
 }
 //Process the selected data, will filter out textures,and return false if non-texture selected
 bool UQuickMaterialCreationWidget::ProcessSelectedData(const TArray<FAssetData>& SelectedDataToProccess,
@@ -59,6 +68,7 @@ bool UQuickMaterialCreationWidget::ProcessSelectedData(const TArray<FAssetData>&
 	return true;
 }
 
+//Will return true if the material name is used by asset under the specified folder
 bool UQuickMaterialCreationWidget::CheckIsNameUsed(const FString& FolderPathToCheck,
 	const FString& MaterialNameToCheck)
 {
@@ -76,4 +86,13 @@ bool UQuickMaterialCreationWidget::CheckIsNameUsed(const FString& FolderPathToCh
 	return false;
 }
 
+
+UMaterial* UQuickMaterialCreationWidget::CreateMaterialAsset(const FString& NameOfTheMaterial, const FString& PathToPutMaterial)
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
+	UObject* CreatedObject = AssetToolsModule.Get().CreateAsset(NameOfTheMaterial, PathToPutMaterial,
+		UMaterial::StaticClass(), MaterialFactory);
+	return Cast<UMaterial>(CreatedObject);
+}
 #pragma endregion
