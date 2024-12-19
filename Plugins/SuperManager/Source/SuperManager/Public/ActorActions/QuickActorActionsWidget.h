@@ -10,6 +10,13 @@ UCLASS()
 class SUPERMANAGER_API UQuickActorActionsWidget : public UEditorUtilityWidget
 {
 	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void SelectAllActorsWithSimilarName();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchSelection")
+	TEnumAsByte<ESearchCase::Type> SearchCase = ESearchCase::IgnoreCase;
+
 private:
 	UPROPERTY()
 	class UEditorActorSubsystem* EditorActorSubsystem;
