@@ -91,6 +91,58 @@ void UQuickActorActionsWidget::DuplicateActors()
 	}
 }
 
+void UQuickActorActionsWidget::RandomizeActorTransform()
+{
+	const bool ConditionNotSet =
+		!RandomActorRotation.bRandomizeRotYaw &&
+		!RandomActorRotation.bRandomizeRotPitch &&
+		!RandomActorRotation.bRandomizeRotRoll;
+	if (ConditionNotSet)
+	{
+		DebugHeader::ShowNInfo(TEXT("No variation condition specified"));
+		return;
+	}
+	if (!GetEditorActorSubsystem()) return;
+	TArray<AActor*> SelectedActors = EditorActorSubsystem->GetSelectedLevelActors();
+	uint32 Counter = 0;
+	if (SelectedActors.Num() == 0)
+	{
+		DebugHeader::ShowNInfo(TEXT("No actor selected"));
+		return;
+	}
+	for (AActor* SelectedActor : SelectedActors)
+	{
+		if (!SelectedActor) continue;
+		if (RandomActorRotation.bRandomizeRotYaw)
+		{
+			const float RandomRotYawValue = FMath::RandRange(RandomActorRotation.RotYawMin, RandomActorRotation.RotYawMax);
+
+			SelectedActor->AddActorWorldRotation(FRotator(0.f, RandomRotYawValue, 0.f));
+		}
+		if (RandomActorRotation.bRandomizeRotPitch)
+		{
+			const float RandomRotPitchValue = FMath::RandRange(RandomActorRotation.RotPitchMin, RandomActorRotation.RotPitchMax);
+			SelectedActor->AddActorWorldRotation(FRotator(RandomRotPitchValue, 0.f, 0.f));
+		}
+		if (RandomActorRotation.bRandomizeRotRoll)
+		{
+			const float RandomRotRollValue = FMath::RandRange(RandomActorRotation.RotRollMin, RandomActorRotation.RotRollMax);
+			SelectedActor->AddActorWorldRotation(FRotator(0.f, 0.f, RandomRotRollValue));
+		}
+		const bool bShouldIncreaseCounter =
+			RandomActorRotation.bRandomizeRotYaw ||
+			RandomActorRotation.bRandomizeRotPitch ||
+			RandomActorRotation.bRandomizeRotRoll;
+		if (bShouldIncreaseCounter) Counter++;
+
+	}
+	if (Counter > 0)
+	{
+		DebugHeader::ShowNInfo(TEXT("Successfully set ") +
+			FString::FromInt(Counter) + TEXT(" actors"));
+	}
+}
+
 bool UQuickActorActionsWidget::GetEditorActorSubsystem()
 {
 	if (!EditorActorSubsystem)
