@@ -10,6 +10,8 @@
 #include "SlateWidgets/AdvanceDeletionWidget.h"
 #include "CustomStyle/SuperManagerStyle.h"
 #include "LevelEditor.h"
+#include "Engine/Selection.h"
+#include "Subsystems/EditorActorSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
@@ -19,6 +21,7 @@ void FSuperManagerModule::StartupModule()
 	InitCBMenuExtention();
 	RegisterAdvanceDeletionTab();
 	InitLevelEditorExtention();
+	InitCustomSelectionEvent();
 }
 
 
@@ -386,13 +389,105 @@ void FSuperManagerModule::AddLevelEditorMenuEntry(FMenuBuilder& MenuBuilder)
 }
 void FSuperManagerModule::OnLockActorSelectionButtonClicked()
 {
-	DebugHeader::Print(TEXT("Locked"), FColor::Cyan);
+	if (!GetEditorActorSubsystem()) return;
+	TArray<AActor*> SelectedActors = WeakEditorActorSubsystem->GetSelectedLevelActors();
+	if (SelectedActors.Num() == 0)
+	{
+		DebugHeader::ShowNInfo(TEXT("No actor selected"));
+		return;
+	}
+	FString CurrentLockedActorNames = TEXT("Locked selection for:");
+	for (AActor* SelectedActor : SelectedActors)
+	{
+		if (!SelectedActor) continue;
+		LockActorSelection(SelectedActor);
+		WeakEditorActorSubsystem->SetActorSelectionState(SelectedActor, false);
+		CurrentLockedActorNames.Append(TEXT("\n"));
+		CurrentLockedActorNames.Append(SelectedActor->GetActorLabel());
+	}
+	DebugHeader::ShowNInfo(CurrentLockedActorNames);
 }
 void FSuperManagerModule::OnUnlockActorSelectionButtonClicked()
 {
-	DebugHeader::Print(TEXT("Unlocked"), FColor::Red);
+	if (!GetEditorActorSubsystem()) return;
+	TArray<AActor*> AllActorsInLevel = WeakEditorActorSubsystem->GetAllLevelActors();
+	TArray<AActor*> AllLockedActors;
+	for (AActor* ActorInLevel : AllActorsInLevel)
+	{
+		if (!ActorInLevel) continue;
+		if (CheckIsActorSelectionLocked(ActorInLevel))
+		{
+			AllLockedActors.Add(ActorInLevel);
+		}
+	}
+	if (AllLockedActors.Num() == 0)
+	{
+		DebugHeader::ShowNInfo(TEXT("No selection locked actor currently"));
+	}
+	FString UnlockedActorNames = TEXT("Lifted selection constraint for:");
+	for (AActor* LockedActor : AllLockedActors)
+	{
+		UnlockActorSelection(LockedActor);
+		UnlockedActorNames.Append(TEXT("\n"));
+		UnlockedActorNames.Append(LockedActor->GetActorLabel());
+	}
+	DebugHeader::ShowNInfo(UnlockedActorNames);
 }
 #pragma endregion
+
+#pragma region SelectionLock
+void FSuperManagerModule::InitCustomSelectionEvent()
+{
+	USelection* UserSelection = GEditor->GetSelectedActors();
+	UserSelection->SelectObjectEvent.AddRaw(this, &FSuperManagerModule::OnActorSelected);
+}
+void FSuperManagerModule::OnActorSelected(UObject* SelectedObject)
+{
+	if (!GetEditorActorSubsystem()) return;
+	if (AActor* SelectedActor = Cast<AActor>(SelectedObject))
+	{
+		if (CheckIsActorSelectionLocked(SelectedActor))
+		{
+			//Deselect actor right away
+			WeakEditorActorSubsystem->SetActorSelectionState(SelectedActor, false);
+		}
+	}
+}
+
+void FSuperManagerModule::LockActorSelection(AActor* ActorToProcess)
+{
+	if (!ActorToProcess) return;
+
+	if (!ActorToProcess->ActorHasTag(FName("Locked")))
+	{
+		ActorToProcess->Tags.Add(FName("Locked"));
+	}
+}
+void FSuperManagerModule::UnlockActorSelection(AActor* ActorToProcess)
+{
+	if (!ActorToProcess) return;
+
+	if (ActorToProcess->ActorHasTag(FName("Locked")))
+	{
+		ActorToProcess->Tags.Remove(FName("Locked"));
+	}
+}
+bool FSuperManagerModule::CheckIsActorSelectionLocked(AActor* ActorToProcess)
+{
+	if (!ActorToProcess) return false;
+	return ActorToProcess->ActorHasTag(FName("Locked"));
+}
+
+#pragma endregion
+
+bool FSuperManagerModule::GetEditorActorSubsystem()
+{
+	if (!WeakEditorActorSubsystem.IsValid())
+	{
+		WeakEditorActorSubsystem = GEditor->GetEditorSubsystem<UEditorActorSubsystem>();
+	}
+	return WeakEditorActorSubsystem.IsValid();
+}
 
 void FSuperManagerModule::ShutdownModule()
 {
