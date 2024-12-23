@@ -88,6 +88,11 @@ void FSuperManagerModule::AddCBMenuEntry(FMenuBuilder& MenuBuilder)
 
 void FSuperManagerModule::OnDeleteUnusedAssetClicked()
 {
+	if (ConstructedDockTab.IsValid())
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please close advance deletion tab before this operation"));
+		return;
+	}
 	if (FolderPathsSelected.Num() > 1)
 	{
 		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("You can only do this to one folder"));
@@ -145,6 +150,11 @@ void FSuperManagerModule::OnDeleteUnusedAssetClicked()
 
 void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 {
+	if (ConstructedDockTab.IsValid())
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please close advance deletion tab before this operation"));
+		return;
+	}
 	FixUpRedirectors();
 	TArray<FString> FolderPathsArray = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0], true, true);
 	uint32 Counter = 0;
@@ -236,18 +246,18 @@ void FSuperManagerModule::RegisterAdvanceDeletionTab()
 
 TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvanceDeletionTab(const FSpawnTabArgs&SpawnTabArgs)
 {
-	TArray<TSharedPtr<FAssetData>> AssetsData;
-	if (FolderPathsSelected.Num() > 0)
-	{
-		AssetsData = GetAllAssetDataUnderSelectedFolder();
-	}
-
-	return SNew(SDockTab).TabRole(ETabRole::NomadTab)
+	if (FolderPathsSelected.Num() == 0) return SNew(SDockTab).TabRole(ETabRole::NomadTab);
+	ConstructedDockTab =
+		SNew(SDockTab).TabRole(ETabRole::NomadTab)
 		[
 			SNew(SAdvanceDeletionTab)
-				.AssetsDataToStore(AssetsData)
+				.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
 				.CurrentSelectedFolder(FolderPathsSelected[0])
 		];
+
+	ConstructedDockTab->SetOnTabClosed(
+		SDockTab::FOnTabClosedCallback::CreateRaw(this, &FSuperManagerModule::OnAdvanceDeletionTabClosed));
+	return ConstructedDockTab.ToSharedRef();
 }
 
 TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelectedFolder()
@@ -271,7 +281,14 @@ TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelected
 	return AvaiableAssetsData;
 }
 
-
+void FSuperManagerModule::OnAdvanceDeletionTabClosed(TSharedRef<SDockTab> TabToClose)
+{
+	if (ConstructedDockTab.IsValid())
+	{
+		ConstructedDockTab.Reset();
+		FolderPathsSelected.Empty();
+	}
+}
 #pragma endregion
 
 #pragma region ProccessDataForAdvanceDeletionTab
