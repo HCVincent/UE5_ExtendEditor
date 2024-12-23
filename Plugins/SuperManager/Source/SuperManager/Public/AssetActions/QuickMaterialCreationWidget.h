@@ -16,7 +16,7 @@ public:
 
 #pragma region QuickMaterialCreationCore
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "CreateMaterialFromSelectedTextures")
 	void CreateMaterialFromSelectedTextures();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
