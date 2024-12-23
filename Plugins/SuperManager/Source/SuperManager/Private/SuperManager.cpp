@@ -501,6 +501,22 @@ TSharedRef<ISceneOutlinerColumn> FSuperManagerModule::OnCreateSelectionLockColum
 }
 #pragma endregion
 
+void FSuperManagerModule::ProcessLockingForOutliner(AActor* ActorToProcess, bool bShouldLock)
+{
+	if (!GetEditorActorSubsystem()) return;
+	if (bShouldLock)
+	{
+		LockActorSelection(ActorToProcess);
+		WeakEditorActorSubsystem->SetActorSelectionState(ActorToProcess, false);
+		DebugHeader::ShowNInfo(TEXT("Locked selection for:\n") + ActorToProcess->GetActorLabel());
+	}
+	else
+	{
+		UnlockActorSelection(ActorToProcess);
+		DebugHeader::ShowNInfo(TEXT("Removed selection lock for:\n") + ActorToProcess->GetActorLabel());
+	}
+}
+
 bool FSuperManagerModule::GetEditorActorSubsystem()
 {
 	if (!WeakEditorActorSubsystem.IsValid())
