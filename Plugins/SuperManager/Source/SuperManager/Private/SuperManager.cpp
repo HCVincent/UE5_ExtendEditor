@@ -408,6 +408,8 @@ void FSuperManagerModule::OnLockActorSelectionButtonClicked()
 		CurrentLockedActorNames.Append(TEXT("\n"));
 		CurrentLockedActorNames.Append(SelectedActor->GetActorLabel());
 	}
+	RefreshSceneOutliner();
+
 	DebugHeader::ShowNInfo(CurrentLockedActorNames);
 }
 void FSuperManagerModule::OnUnlockActorSelectionButtonClicked()
@@ -426,6 +428,7 @@ void FSuperManagerModule::OnUnlockActorSelectionButtonClicked()
 	if (AllLockedActors.Num() == 0)
 	{
 		DebugHeader::ShowNInfo(TEXT("No selection locked actor currently"));
+		return;
 	}
 	FString UnlockedActorNames = TEXT("Lifted selection constraint for:");
 	for (AActor* LockedActor : AllLockedActors)
@@ -434,6 +437,7 @@ void FSuperManagerModule::OnUnlockActorSelectionButtonClicked()
 		UnlockedActorNames.Append(TEXT("\n"));
 		UnlockedActorNames.Append(LockedActor->GetActorLabel());
 	}
+	RefreshSceneOutliner();
 	DebugHeader::ShowNInfo(UnlockedActorNames);
 }
 #pragma endregion
@@ -479,6 +483,17 @@ bool FSuperManagerModule::CheckIsActorSelectionLocked(AActor* ActorToProcess)
 {
 	if (!ActorToProcess) return false;
 	return ActorToProcess->ActorHasTag(FName("Locked"));
+}
+
+void FSuperManagerModule::RefreshSceneOutliner()
+{
+	FLevelEditorModule& LevelEditorModule =
+		FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TSharedPtr<ISceneOutliner> SceneOutliner = LevelEditorModule.GetFirstLevelEditor()->GetSceneOutliner();
+	if (SceneOutliner.IsValid())
+	{
+		SceneOutliner->FullRefresh();
+	}
 }
 
 #pragma endregion
