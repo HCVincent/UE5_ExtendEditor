@@ -51,6 +51,10 @@ private:
 	void UnlockActorSelection(AActor* ActorToProcess);
 	bool CheckIsActorSelectionLocked(AActor* ActorToProcess);
 #pragma endregion
+#pragma region SceneOutlinerExtension
+	void InitSceneOutlinerColumnExtension();
+	TSharedRef<class ISceneOutlinerColumn> OnCreateSelectionLockColumn(class ISceneOutliner& SceneOutliner);
+#pragma endregion
 	TWeakObjectPtr<class UEditorActorSubsystem> WeakEditorActorSubsystem;
 	bool GetEditorActorSubsystem();
 public:

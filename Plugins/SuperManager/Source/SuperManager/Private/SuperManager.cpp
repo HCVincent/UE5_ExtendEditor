@@ -12,6 +12,8 @@
 #include "LevelEditor.h"
 #include "Engine/Selection.h"
 #include "Subsystems/EditorActorSubsystem.h"
+#include "SceneOutlinerModule.h"
+#include "CustomOutlinerColumn/OutlinerSelectionColumn.h"
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
@@ -22,6 +24,7 @@ void FSuperManagerModule::StartupModule()
 	RegisterAdvanceDeletionTab();
 	InitLevelEditorExtention();
 	InitCustomSelectionEvent();
+	InitSceneOutlinerColumnExtension();
 }
 
 
@@ -478,6 +481,24 @@ bool FSuperManagerModule::CheckIsActorSelectionLocked(AActor* ActorToProcess)
 	return ActorToProcess->ActorHasTag(FName("Locked"));
 }
 
+#pragma endregion
+
+#pragma region SceneOutlinerExtension
+void FSuperManagerModule::InitSceneOutlinerColumnExtension()
+{
+	FSceneOutlinerModule& SceneOutlinerModule =
+		FModuleManager::LoadModuleChecked<FSceneOutlinerModule>(TEXT("SceneOutliner"));
+	FSceneOutlinerColumnInfo SelectionLockColumnInfo(
+		ESceneOutlinerColumnVisibility::Visible,
+		1,
+		FCreateSceneOutlinerColumn::CreateRaw(this, &FSuperManagerModule::OnCreateSelectionLockColumn)
+	);
+	SceneOutlinerModule.RegisterDefaultColumnType<FOutlinerSelectionLockColumn>(SelectionLockColumnInfo);
+}
+TSharedRef<ISceneOutlinerColumn> FSuperManagerModule::OnCreateSelectionLockColumn(ISceneOutliner& SceneOutliner)
+{
+	return MakeShareable(new FOutlinerSelectionLockColumn(SceneOutliner));
+}
 #pragma endregion
 
 bool FSuperManagerModule::GetEditorActorSubsystem()
