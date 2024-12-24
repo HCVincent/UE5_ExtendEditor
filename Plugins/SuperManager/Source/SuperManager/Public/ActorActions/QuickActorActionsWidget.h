@@ -56,7 +56,7 @@ public:
 	TEnumAsByte<ESearchCase::Type> SearchCase = ESearchCase::IgnoreCase;
 #pragma endregion
 #pragma region ActorBatchDuplication
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "ActorBatchDuplication")
 	void DuplicateActors();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchDuplication")
 	E_DuplicationAxis AxisForDuplication = E_DuplicationAxis::EDA_XAxis;
