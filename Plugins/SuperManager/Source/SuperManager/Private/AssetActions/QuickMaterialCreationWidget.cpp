@@ -7,6 +7,7 @@
 #include "Factories/MaterialFactoryNew.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 
 #pragma region QuickMaterialCreationCore
 
@@ -122,49 +123,102 @@ UMaterial* UQuickMaterialCreationWidget::CreateMaterialAsset(const FString& Name
 void UQuickMaterialCreationWidget::Default_CreateMaterialNodes(UMaterial* CreatedMaterial,
 	UTexture2D* SelectedTexture, uint32& PinsConnectedCounter)
 {
-	UMaterialExpressionTextureSample* TextureSampleNode =
-		NewObject<UMaterialExpressionTextureSample>(CreatedMaterial);
-	if (!TextureSampleNode) return;
-	if (!CreatedMaterial->HasBaseColorConnected())
+	if (bUseParameterizedTextures)
 	{
-		if (TryConnectBaseColor(TextureSampleNode, SelectedTexture, CreatedMaterial))
-		{
-			PinsConnectedCounter++;
-			return;
-		}
-	}
+		UMaterialExpressionTextureSampleParameter2D* TextureParameterNode =
+			NewObject<UMaterialExpressionTextureSampleParameter2D>(CreatedMaterial);
+		if (!TextureParameterNode) return;
 
-	if (!CreatedMaterial->HasMetallicConnected())
-	{
-		if (TryConnectMetalic(TextureSampleNode, SelectedTexture, CreatedMaterial))
+		if (!CreatedMaterial->HasBaseColorConnected())
 		{
-			PinsConnectedCounter++;
-			return;
+			if (TryConnectBaseColor(TextureParameterNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
 		}
-	}
 
-	if (!CreatedMaterial->HasRoughnessConnected())
-	{
-		if (TryConnectRoughness(TextureSampleNode, SelectedTexture, CreatedMaterial))
+		if (!CreatedMaterial->HasMetallicConnected())
 		{
-			PinsConnectedCounter++;
-			return;
+			if (TryConnectMetalic(TextureParameterNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
+		}
+
+		if (!CreatedMaterial->HasRoughnessConnected())
+		{
+			if (TryConnectRoughness(TextureParameterNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
+		}
+		if (!CreatedMaterial->HasNormalConnected())
+		{
+			if (TryConnectNormal(TextureParameterNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
+		}
+		if (!CreatedMaterial->HasAmbientOcclusionConnected())
+		{
+			if (TryConnectAO(TextureParameterNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
 		}
 	}
-	if (!CreatedMaterial->HasNormalConnected())
+	else
 	{
-		if (TryConnectNormal(TextureSampleNode, SelectedTexture, CreatedMaterial))
+		UMaterialExpressionTextureSample* TextureSampleNode =
+			NewObject<UMaterialExpressionTextureSample>(CreatedMaterial);
+		if (!TextureSampleNode) return;
+
+		if (!CreatedMaterial->HasBaseColorConnected())
 		{
-			PinsConnectedCounter++;
-			return;
+			if (TryConnectBaseColor(TextureSampleNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
 		}
-	}
-	if (!CreatedMaterial->HasAmbientOcclusionConnected())
-	{
-		if (TryConnectAO(TextureSampleNode, SelectedTexture, CreatedMaterial))
+
+		if (!CreatedMaterial->HasMetallicConnected())
 		{
-			PinsConnectedCounter++;
-			return;
+			if (TryConnectMetalic(TextureSampleNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
+		}
+
+		if (!CreatedMaterial->HasRoughnessConnected())
+		{
+			if (TryConnectRoughness(TextureSampleNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
+		}
+		if (!CreatedMaterial->HasNormalConnected())
+		{
+			if (TryConnectNormal(TextureSampleNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
+		}
+		if (!CreatedMaterial->HasAmbientOcclusionConnected())
+		{
+			if (TryConnectAO(TextureSampleNode, SelectedTexture, CreatedMaterial))
+			{
+				PinsConnectedCounter++;
+				return;
+			}
 		}
 	}
 	DebugHeader::Print(TEXT("Failed to connect the texture: ") + SelectedTexture->GetName(), FColor::Red);
@@ -179,11 +233,19 @@ bool UQuickMaterialCreationWidget::TryConnectBaseColor(UMaterialExpressionTextur
 	{
 		if (SelectedTexture->GetName().Contains(BaseColorName))
 		{
-			//Connect pins to base color socket here
-			TextureSampleNode->Texture = SelectedTexture;
-			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
-
-			CreatedMaterial->GetExpressionInputForProperty(MP_BaseColor)->Connect(0, TextureSampleNode);
+			if (UMaterialExpressionTextureSampleParameter2D* ParameterNode = Cast<UMaterialExpressionTextureSampleParameter2D>(TextureSampleNode))
+			{
+				ParameterNode->ParameterName = FName(TEXT("BaseColor"));
+				ParameterNode->Texture = SelectedTexture;
+				CreatedMaterial->GetExpressionCollection().AddExpression(ParameterNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_BaseColor)->Connect(0, ParameterNode);
+			}
+			else
+			{
+				TextureSampleNode->Texture = SelectedTexture;
+				CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_BaseColor)->Connect(0, TextureSampleNode);
+			}
 			CreatedMaterial->PostEditChange();
 			TextureSampleNode->MaterialExpressionEditorX -= 600;
 			return true;
@@ -191,7 +253,6 @@ bool UQuickMaterialCreationWidget::TryConnectBaseColor(UMaterialExpressionTextur
 	}
 	return false;
 }
-#pragma endregion
 
 bool UQuickMaterialCreationWidget::TryConnectMetalic(UMaterialExpressionTextureSample* TextureSampleNode,
 	UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
@@ -203,21 +264,33 @@ bool UQuickMaterialCreationWidget::TryConnectMetalic(UMaterialExpressionTextureS
 			SelectedTexture->CompressionSettings = TextureCompressionSettings::TC_Default;
 			SelectedTexture->SRGB = false;
 			SelectedTexture->PostEditChange();
-			TextureSampleNode->Texture = SelectedTexture;
-			TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
-			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
-			CreatedMaterial->GetExpressionInputForProperty(MP_Metallic)->Connect(0, TextureSampleNode);
+
+			if (UMaterialExpressionTextureSampleParameter2D* ParameterNode = Cast<UMaterialExpressionTextureSampleParameter2D>(TextureSampleNode))
+			{
+				ParameterNode->ParameterName = FName(TEXT("Metallic"));
+				ParameterNode->Texture = SelectedTexture;
+				ParameterNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+				CreatedMaterial->GetExpressionCollection().AddExpression(ParameterNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_Metallic)->Connect(0, ParameterNode);
+			}
+			else
+			{
+				TextureSampleNode->Texture = SelectedTexture;
+				TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+				CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_Metallic)->Connect(0, TextureSampleNode);
+			}
 			CreatedMaterial->PostEditChange();
 			TextureSampleNode->MaterialExpressionEditorX -= 600;
 			TextureSampleNode->MaterialExpressionEditorY += 240;
 			return true;
 		}
 	}
-
 	return false;
 }
 
-bool UQuickMaterialCreationWidget::TryConnectRoughness(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
+bool UQuickMaterialCreationWidget::TryConnectRoughness(UMaterialExpressionTextureSample* TextureSampleNode,
+	UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
 {
 	for (const FString& RoughnessName : RoughnessArray)
 	{
@@ -226,10 +299,22 @@ bool UQuickMaterialCreationWidget::TryConnectRoughness(UMaterialExpressionTextur
 			SelectedTexture->CompressionSettings = TextureCompressionSettings::TC_Default;
 			SelectedTexture->SRGB = false;
 			SelectedTexture->PostEditChange();
-			TextureSampleNode->Texture = SelectedTexture;
-			TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
-			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
-			CreatedMaterial->GetExpressionInputForProperty(MP_Roughness)->Connect(0, TextureSampleNode);
+
+			if (UMaterialExpressionTextureSampleParameter2D* ParameterNode = Cast<UMaterialExpressionTextureSampleParameter2D>(TextureSampleNode))
+			{
+				ParameterNode->ParameterName = FName(TEXT("Roughness"));
+				ParameterNode->Texture = SelectedTexture;
+				ParameterNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+				CreatedMaterial->GetExpressionCollection().AddExpression(ParameterNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_Roughness)->Connect(0, ParameterNode);
+			}
+			else
+			{
+				TextureSampleNode->Texture = SelectedTexture;
+				TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+				CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_Roughness)->Connect(0, TextureSampleNode);
+			}
 			CreatedMaterial->PostEditChange();
 			TextureSampleNode->MaterialExpressionEditorX -= 600;
 			TextureSampleNode->MaterialExpressionEditorY += 480;
@@ -238,26 +323,40 @@ bool UQuickMaterialCreationWidget::TryConnectRoughness(UMaterialExpressionTextur
 	}
 	return false;
 }
-bool UQuickMaterialCreationWidget::TryConnectNormal(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
+
+bool UQuickMaterialCreationWidget::TryConnectNormal(UMaterialExpressionTextureSample* TextureSampleNode,
+	UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
 {
 	for (const FString& NormalName : NormalArray)
 	{
 		if (SelectedTexture->GetName().Contains(NormalName))
 		{
-			TextureSampleNode->Texture = SelectedTexture;
-			TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Normal;
-			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
-			CreatedMaterial->GetExpressionInputForProperty(MP_Normal)->Connect(0, TextureSampleNode);
+			if (UMaterialExpressionTextureSampleParameter2D* ParameterNode = Cast<UMaterialExpressionTextureSampleParameter2D>(TextureSampleNode))
+			{
+				ParameterNode->ParameterName = FName(TEXT("Normal"));
+				ParameterNode->Texture = SelectedTexture;
+				ParameterNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Normal;
+				CreatedMaterial->GetExpressionCollection().AddExpression(ParameterNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_Normal)->Connect(0, ParameterNode);
+			}
+			else
+			{
+				TextureSampleNode->Texture = SelectedTexture;
+				TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Normal;
+				CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_Normal)->Connect(0, TextureSampleNode);
+			}
 			CreatedMaterial->PostEditChange();
 			TextureSampleNode->MaterialExpressionEditorX -= 600;
 			TextureSampleNode->MaterialExpressionEditorY += 720;
 			return true;
 		}
 	}
-
 	return false;
 }
-bool UQuickMaterialCreationWidget::TryConnectAO(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
+
+bool UQuickMaterialCreationWidget::TryConnectAO(UMaterialExpressionTextureSample* TextureSampleNode,
+	UTexture2D* SelectedTexture, UMaterial* CreatedMaterial)
 {
 	for (const FString& AOName : AmbientOcclusionArray)
 	{
@@ -266,10 +365,22 @@ bool UQuickMaterialCreationWidget::TryConnectAO(UMaterialExpressionTextureSample
 			SelectedTexture->CompressionSettings = TextureCompressionSettings::TC_Default;
 			SelectedTexture->SRGB = false;
 			SelectedTexture->PostEditChange();
-			TextureSampleNode->Texture = SelectedTexture;
-			TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
-			CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
-			CreatedMaterial->GetExpressionInputForProperty(MP_AmbientOcclusion)->Connect(0, TextureSampleNode);
+
+			if (UMaterialExpressionTextureSampleParameter2D* ParameterNode = Cast<UMaterialExpressionTextureSampleParameter2D>(TextureSampleNode))
+			{
+				ParameterNode->ParameterName = FName(TEXT("AmbientOcclusion"));
+				ParameterNode->Texture = SelectedTexture;
+				ParameterNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+				CreatedMaterial->GetExpressionCollection().AddExpression(ParameterNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_AmbientOcclusion)->Connect(0, ParameterNode);
+			}
+			else
+			{
+				TextureSampleNode->Texture = SelectedTexture;
+				TextureSampleNode->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+				CreatedMaterial->GetExpressionCollection().AddExpression(TextureSampleNode);
+				CreatedMaterial->GetExpressionInputForProperty(MP_AmbientOcclusion)->Connect(0, TextureSampleNode);
+			}
 			CreatedMaterial->PostEditChange();
 			TextureSampleNode->MaterialExpressionEditorX -= 600;
 			TextureSampleNode->MaterialExpressionEditorY += 960;
@@ -296,4 +407,156 @@ UMaterialInstanceConstant* UQuickMaterialCreationWidget::CreateMaterialInstanceA
 		return CreatedMI;
 	}
 	return nullptr;
+}
+
+UMaterialExpressionTextureSampleParameter2D* UQuickMaterialCreationWidget::CreateTextureParameter(UMaterial* Material, FName ParameterName, UTexture2D* Texture)
+{
+	if (!Material || !Texture) return nullptr;
+
+	UMaterialExpressionTextureSampleParameter2D* ParameterNode = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material);
+	if (!ParameterNode) return nullptr;
+
+	ParameterNode->ParameterName = ParameterName;
+	ParameterNode->Texture = Texture;
+	Material->GetExpressionCollection().AddExpression(ParameterNode);
+
+	return ParameterNode;
+}
+
+void UQuickMaterialCreationWidget::CreateMaterialInstanceFromParent()
+{
+	if (!ParentMaterial)
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please select a parent material"));
+		return;
+	}
+
+	if (bCustomMaterialName)
+	{
+		if (MaterialName.IsEmpty() || MaterialName.Equals(TEXT("M_")))
+		{
+			DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Please enter a valid name"));
+			return;
+		}
+	}
+
+	TArray<FAssetData> SelectedAssetsData = UEditorUtilityLibrary::GetSelectedAssetData();
+	TArray<UTexture2D*> SelectedTexturesArray;
+	FString SelectedTextureFolderPath;
+
+	if (!ProcessSelectedData(SelectedAssetsData, SelectedTexturesArray, SelectedTextureFolderPath))
+	{
+		MaterialName = TEXT("M_");
+		return;
+	}
+
+	if (CheckIsNameUsed(SelectedTextureFolderPath, MaterialName))
+	{
+		MaterialName = TEXT("M_");
+		return;
+	}
+
+	if (CreateMaterialInstanceFromSelectedTextures(ParentMaterial, SelectedTexturesArray, SelectedTextureFolderPath))
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Successfully created material instance"));
+	}
+	else
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("Failed to create material instance"));
+	}
+
+	MaterialName = TEXT("M_");
+}
+
+bool UQuickMaterialCreationWidget::CreateMaterialInstanceFromSelectedTextures(UMaterial* ParentMat,
+	const TArray<UTexture2D*>& SelectedTextures, const FString& TargetPath)
+{
+	if (!ParentMat || SelectedTextures.Num() == 0) return false;
+
+	FString NewMIName = MaterialName;
+	NewMIName.RemoveFromStart(TEXT("M_"));
+	NewMIName.InsertAt(0, TEXT("MI_"));
+
+	UMaterialInstanceConstantFactoryNew* MIFactoryNew = NewObject<UMaterialInstanceConstantFactoryNew>();
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+	
+	UObject* CreatedObject = AssetToolsModule.Get().CreateAsset(NewMIName, TargetPath,
+		UMaterialInstanceConstant::StaticClass(), MIFactoryNew);
+
+	if (UMaterialInstanceConstant* CreatedMI = Cast<UMaterialInstanceConstant>(CreatedObject))
+	{
+		CreatedMI->SetParentEditorOnly(ParentMat);
+
+		// Try to set texture parameters based on texture names
+		for (UTexture2D* SelectedTexture : SelectedTextures)
+		{
+			if (!SelectedTexture) continue;
+
+			for (const FString& BaseColorName : BaseColorArray)
+			{
+				if (SelectedTexture->GetName().Contains(BaseColorName))
+				{
+					TrySetTextureParameter(CreatedMI, TEXT("BaseColor"), SelectedTexture);
+					break;
+				}
+			}
+
+			for (const FString& MetallicName : MetallicArray)
+			{
+				if (SelectedTexture->GetName().Contains(MetallicName))
+				{
+					TrySetTextureParameter(CreatedMI, TEXT("Metallic"), SelectedTexture);
+					break;
+				}
+			}
+
+			for (const FString& RoughnessName : RoughnessArray)
+			{
+				if (SelectedTexture->GetName().Contains(RoughnessName))
+				{
+					TrySetTextureParameter(CreatedMI, TEXT("Roughness"), SelectedTexture);
+					break;
+				}
+			}
+
+			for (const FString& NormalName : NormalArray)
+			{
+				if (SelectedTexture->GetName().Contains(NormalName))
+				{
+					TrySetTextureParameter(CreatedMI, TEXT("Normal"), SelectedTexture);
+					break;
+				}
+			}
+
+			for (const FString& AOName : AmbientOcclusionArray)
+			{
+				if (SelectedTexture->GetName().Contains(AOName))
+				{
+					TrySetTextureParameter(CreatedMI, TEXT("AmbientOcclusion"), SelectedTexture);
+					break;
+				}
+			}
+		}
+
+		CreatedMI->PostEditChange();
+		ParentMat->PostEditChange();
+		return true;
+	}
+
+	return false;
+}
+
+void UQuickMaterialCreationWidget::TrySetTextureParameter(UMaterialInstanceConstant* MaterialInstance,
+	const FName ParameterName, UTexture2D* Texture)
+{
+	if (!MaterialInstance || !Texture) return;
+
+	FMaterialParameterInfo ParamInfo(ParameterName);
+	UTexture* ExistingTexture = nullptr;
+	MaterialInstance->GetTextureParameterValue(ParamInfo, ExistingTexture);
+
+	if (ExistingTexture != Texture)
+	{
+		MaterialInstance->SetTextureParameterValueEditorOnly(ParamInfo, Texture);
+	}
 }

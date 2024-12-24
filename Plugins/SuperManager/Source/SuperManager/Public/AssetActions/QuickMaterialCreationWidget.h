@@ -4,6 +4,11 @@
 #include "CoreMinimal.h"
 #include "EditorUtilityWidget.h"
 #include "QuickMaterialCreationWidget.generated.h"
+
+// Forward declarations
+class UMaterialExpressionTextureSampleParameter2D;
+class UMaterial;
+
 /**
  *
  */
@@ -26,6 +31,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
 	bool bCreateMaterialInstance = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
+	bool bUseParameterizedTextures = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialInstanceFromSelectedTextures")
+	bool bCreateFromParent = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialInstanceFromSelectedTextures", meta = (EditCondition = "bCreateFromParent"))
+	UMaterial* ParentMaterial = nullptr;
+
+	UFUNCTION(BlueprintCallable, Category = "CreateMaterialInstanceFromSelectedTextures")
+	void CreateMaterialInstanceFromParent();
 #pragma endregion
 
 #pragma region SupportedTextureNames
@@ -72,13 +89,16 @@ private:
 #pragma endregion
 
 #pragma region CreateMaterialNodesConnectPins
-
 	bool TryConnectBaseColor(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 	bool TryConnectMetalic(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 	bool TryConnectRoughness(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 	bool TryConnectNormal(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
 	bool TryConnectAO(UMaterialExpressionTextureSample* TextureSampleNode, UTexture2D* SelectedTexture, UMaterial* CreatedMaterial);
-
 #pragma endregion
+
 	class UMaterialInstanceConstant* CreateMaterialInstanceAsset(UMaterial* CreatedMaterial, FString NameOfMaterialInstance, const FString& PathToPutMI);
+	UMaterialExpressionTextureSampleParameter2D* CreateTextureParameter(UMaterial* Material, FName ParameterName, UTexture2D* Texture);
+
+	bool CreateMaterialInstanceFromSelectedTextures(UMaterial* ParentMat, const TArray<UTexture2D*>& SelectedTextures, const FString& TargetPath);
+	void TrySetTextureParameter(UMaterialInstanceConstant* MaterialInstance, const FName ParameterName, UTexture2D* Texture);
 };
