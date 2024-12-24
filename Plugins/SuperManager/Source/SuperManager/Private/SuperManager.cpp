@@ -21,7 +21,6 @@ void FSuperManagerModule::StartupModule()
 {
 	FSuperManagerStyle::InitializeIcons();
 	InitCBMenuExtention();
-	RegisterAdvanceDeletionTab();
 	InitLevelEditorExtention();
 	InitCustomSelectionEvent();
 	InitSceneOutlinerColumnExtension();
@@ -124,11 +123,11 @@ void FSuperManagerModule::OnDeleteUnusedAssetClicked()
 		}
 		if (!UEditorAssetLibrary::DoesAssetExist(AssetPathName)) continue;
 
-		// ¼ì²éÊÇ·ñÎª¹Ø¿¨ÎÄ¼þ
+		// ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Îªï¿½Ø¿ï¿½ï¿½Ä¼ï¿½
 		FAssetData AssetData = UEditorAssetLibrary::FindAssetData(AssetPathName);
-		if (AssetData.AssetClassPath.ToString() == TEXT("/Script/Engine.World"))  // Ê¹ÓÃ AssetClassPath ¼ì²é×Ê²úÀàÐÍ
+		if (AssetData.AssetClassPath.ToString() == TEXT("/Script/Engine.World"))  // Ê¹ï¿½ï¿½ AssetClassPath ï¿½ï¿½ï¿½ï¿½Ê²ï¿½ï¿½ï¿½ï¿½ï¿½
 		{
-			continue;  // Ìø¹ý¹Ø¿¨ÎÄ¼þ
+			continue;  // ï¿½ï¿½ï¿½ï¿½ï¿½Ø¿ï¿½ï¿½Ä¼ï¿½
 		}
 
 		TArray<FString> AssetReferencers = UEditorAssetLibrary::FindPackageReferencersForAsset(AssetPathName);

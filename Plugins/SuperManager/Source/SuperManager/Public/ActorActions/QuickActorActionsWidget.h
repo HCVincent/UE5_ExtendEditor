@@ -64,6 +64,8 @@ public:
 	int32 NumberOfDuplicates = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchDuplication")
 	float OffsetDist = 300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchDuplication", meta = (ClampMin = "0.0", ClampMax = "360.0", UIMin = "0.0", UIMax = "360.0"))
+	float DuplicationRotationAngle = 0.f;
 #pragma endregion
 
 #pragma region RandomizeActorTransform

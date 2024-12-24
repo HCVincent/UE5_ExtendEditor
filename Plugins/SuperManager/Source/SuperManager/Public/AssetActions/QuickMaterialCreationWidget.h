@@ -8,6 +8,7 @@
 // Forward declarations
 class UMaterialExpressionTextureSampleParameter2D;
 class UMaterial;
+class UMaterialInterface;
 
 /**
  *
@@ -29,8 +30,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures", meta = (EditCondition = "bCustomMaterialName"))
 	FString MaterialName = TEXT("M_");
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
-	bool bCreateMaterialInstance = false;
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
+	// bool bCreateMaterialInstance = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialFromSelectedTextures")
 	bool bUseParameterizedTextures = true;
@@ -39,7 +40,7 @@ public:
 	bool bCreateFromParent = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CreateMaterialInstanceFromSelectedTextures", meta = (EditCondition = "bCreateFromParent"))
-	UMaterial* ParentMaterial = nullptr;
+	UMaterialInterface* ParentMaterial = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "CreateMaterialInstanceFromSelectedTextures")
 	void CreateMaterialInstanceFromParent();
@@ -99,6 +100,6 @@ private:
 	class UMaterialInstanceConstant* CreateMaterialInstanceAsset(UMaterial* CreatedMaterial, FString NameOfMaterialInstance, const FString& PathToPutMI);
 	UMaterialExpressionTextureSampleParameter2D* CreateTextureParameter(UMaterial* Material, FName ParameterName, UTexture2D* Texture);
 
-	bool CreateMaterialInstanceFromSelectedTextures(UMaterial* ParentMat, const TArray<UTexture2D*>& SelectedTextures, const FString& TargetPath);
+	bool CreateMaterialInstanceFromSelectedTextures(UMaterialInterface* ParentMat, const TArray<UTexture2D*>& SelectedTextures, const FString& TargetPath);
 	void TrySetTextureParameter(UMaterialInstanceConstant* MaterialInstance, const FName ParameterName, UTexture2D* Texture);
 };

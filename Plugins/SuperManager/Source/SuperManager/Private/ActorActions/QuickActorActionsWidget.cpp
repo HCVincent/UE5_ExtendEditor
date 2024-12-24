@@ -55,6 +55,18 @@ void UQuickActorActionsWidget::DuplicateActors()
 		DebugHeader::ShowNInfo(TEXT("Did not specify a number of duplications or an offset distance"));
 		return;
 	}
+
+	// Ensure rotation angle is between 0 and 360
+	DuplicationRotationAngle = FMath::Fmod(DuplicationRotationAngle, 360.0f);
+	if (DuplicationRotationAngle < 0)
+	{
+		DuplicationRotationAngle += 360.0f;
+	}
+
+	const float AngleInRadians = FMath::DegreesToRadians(DuplicationRotationAngle);
+	const float CosTheta = FMath::Cos(AngleInRadians);
+	const float SinTheta = FMath::Sin(AngleInRadians);
+
 	for (AActor* SelectedActor : SelectedActors)
 	{
 		if (!SelectedActor) continue;
@@ -63,23 +75,38 @@ void UQuickActorActionsWidget::DuplicateActors()
 			AActor* DuplicatedActor =
 				EditorActorSubsystem->DuplicateActor(SelectedActor, SelectedActor->GetWorld());
 			if (!DuplicatedActor) continue;
+
 			const float DuplicationOffsetDist = (i + 1) * OffsetDist;
+			FVector OffsetVector;
+
 			switch (AxisForDuplication)
 			{
 			case E_DuplicationAxis::EDA_XAxis:
-				DuplicatedActor->AddActorWorldOffset(FVector(DuplicationOffsetDist, 0.f, 0.f));
+				// Rotate around Z axis in XY plane
+				OffsetVector = FVector(
+					DuplicationOffsetDist * CosTheta,
+					DuplicationOffsetDist * SinTheta,
+					0.f);
 				break;
 			case E_DuplicationAxis::EDA_YAxis:
-				DuplicatedActor->AddActorWorldOffset(FVector(0.f, DuplicationOffsetDist, 0.f));
+				// Rotate around Z axis in XY plane, but starting from Y axis
+				OffsetVector = FVector(
+					-DuplicationOffsetDist * SinTheta,
+					DuplicationOffsetDist * CosTheta,
+					0.f);
 				break;
 			case E_DuplicationAxis::EDA_ZAxis:
-				DuplicatedActor->AddActorWorldOffset(FVector(0.f, 0.f, DuplicationOffsetDist));
-				break;
-			case E_DuplicationAxis::EDA_MAX:
+				// Rotate around Y axis in XZ plane
+				OffsetVector = FVector(
+					DuplicationOffsetDist * SinTheta,
+					0.f,
+					DuplicationOffsetDist * CosTheta);
 				break;
 			default:
-				break;
+				continue;
 			}
+
+			DuplicatedActor->AddActorWorldOffset(OffsetVector);
 			EditorActorSubsystem->SetActorSelectionState(DuplicatedActor, true);
 			Counter++;
 		}

@@ -47,10 +47,10 @@ void UQuickMaterialCreationWidget::CreateMaterialFromSelectedTextures()
 				+ FString::FromInt(PinsConnectedCounter) + (TEXT(" pins")));
 		}
 
-		if (bCreateMaterialInstance)
-		{
-			CreateMaterialInstanceAsset(CreatedMaterial, MaterialName, SelectedTextureFolderPath);
-		}
+		// if (bCreateMaterialInstance)
+		// {
+		// 	CreateMaterialInstanceAsset(CreatedMaterial, MaterialName, SelectedTextureFolderPath);
+		// }
 	}
 
 	MaterialName = TEXT("M_");
@@ -468,7 +468,7 @@ void UQuickMaterialCreationWidget::CreateMaterialInstanceFromParent()
 	MaterialName = TEXT("M_");
 }
 
-bool UQuickMaterialCreationWidget::CreateMaterialInstanceFromSelectedTextures(UMaterial* ParentMat,
+bool UQuickMaterialCreationWidget::CreateMaterialInstanceFromSelectedTextures(UMaterialInterface* ParentMat,
 	const TArray<UTexture2D*>& SelectedTextures, const FString& TargetPath)
 {
 	if (!ParentMat || SelectedTextures.Num() == 0) return false;
@@ -496,7 +496,7 @@ bool UQuickMaterialCreationWidget::CreateMaterialInstanceFromSelectedTextures(UM
 			{
 				if (SelectedTexture->GetName().Contains(BaseColorName))
 				{
-					TrySetTextureParameter(CreatedMI, TEXT("BaseColor"), SelectedTexture);
+					TrySetTextureParameter(CreatedMI, TEXT("BC_Tex"), SelectedTexture);
 					break;
 				}
 			}
@@ -505,7 +505,7 @@ bool UQuickMaterialCreationWidget::CreateMaterialInstanceFromSelectedTextures(UM
 			{
 				if (SelectedTexture->GetName().Contains(MetallicName))
 				{
-					TrySetTextureParameter(CreatedMI, TEXT("Metallic"), SelectedTexture);
+					TrySetTextureParameter(CreatedMI, TEXT("VT_ORM"), SelectedTexture);
 					break;
 				}
 			}
