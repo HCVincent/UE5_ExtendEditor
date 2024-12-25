@@ -14,12 +14,14 @@
 #include "Subsystems/EditorActorSubsystem.h"
 #include "SceneOutlinerModule.h"
 #include "CustomOutlinerColumn/OutlinerSelectionColumn.h"
+#include "CustomUICommands/SuperManagerUICommands.h"
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
 void FSuperManagerModule::StartupModule()
 {
 	FSuperManagerStyle::InitializeIcons();
+	FSuperManagerUICommands::Register();
 	InitCBMenuExtention();
 	InitLevelEditorExtention();
 	InitCustomSelectionEvent();

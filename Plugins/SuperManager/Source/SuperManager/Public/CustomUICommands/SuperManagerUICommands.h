@@ -12,4 +12,7 @@ public:
 		TEXT("SuperManager")
 	) {}
 	virtual void RegisterCommands() override;
+
+	TSharedPtr<FUICommandInfo> LockActorSelection;
+	TSharedPtr<FUICommandInfo> UnlockActorSelection;
 };
