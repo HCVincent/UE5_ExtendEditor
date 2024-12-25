@@ -59,6 +59,14 @@ private:
 	void InitSceneOutlinerColumnExtension();
 	TSharedRef<class ISceneOutlinerColumn> OnCreateSelectionLockColumn(class ISceneOutliner& SceneOutliner);
 #pragma endregion
+
+#pragma region CustomEditorUICommands
+	TSharedPtr<class FUICommandList> CustomUICommands;
+	void InitCustomUICommands();
+	void OnSelectionLockHotKeyPressed();
+	void OnUnlockActorSelectionHotKeyPressed();
+#pragma endregion
+
 	TWeakObjectPtr<class UEditorActorSubsystem> WeakEditorActorSubsystem;
 	bool GetEditorActorSubsystem();
 public:
