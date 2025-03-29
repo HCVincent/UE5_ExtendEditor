@@ -27,8 +27,15 @@ public:
 	float CleanupRadius = 500.f;
 #pragma endregion
 
-#pragma region CleanOverlappedActor
+#pragma region CleanFoliageActor
+	UFUNCTION(BlueprintCallable, Category = "FoliageClean")
+	void CleanFoliageActorsFromPoint();
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FoliageClean")
+	FVector FoliageCleanupCenter = FVector::ZeroVector;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FoliageClean", meta = (ClampMin = "0.0"))
+	float FoliageCleanupRadius = 500.f;
 #pragma endregion
 
 private:
