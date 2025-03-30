@@ -108,7 +108,11 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 				if (HISMComponent->GetInstanceTransform(InstanceIndex, InstanceTransform, true))
 				{
 					float Distance = FVector::Distance(InstanceTransform.GetLocation(), FoliageCleanupCenter);
-					if (Distance <= FoliageCleanupRadius)
+					
+					// If bCleanInsideRadius is true, remove instances inside the radius.
+					// If false, remove instances outside the radius.
+					if ((bCleanInsideRadius && Distance <= FoliageCleanupRadius) || 
+						(!bCleanInsideRadius && Distance > FoliageCleanupRadius))
 					{
 						InstancesToRemove.Add(InstanceIndex);
 					}
@@ -158,12 +162,15 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 		PackagesToSave.Add(World->GetPackage());
 		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
 		
-		DebugHeader::ShowNInfo(FString::Printf(TEXT("Successfully removed and saved %d foliage instances within radius"),
-			TotalRemovedInstances));
+		FString CleanupLocation = bCleanInsideRadius ? TEXT("within") : TEXT("outside");
+		DebugHeader::ShowNInfo(FString::Printf(TEXT("Successfully removed and saved %d foliage instances %s radius"),
+			TotalRemovedInstances, *CleanupLocation));
 	}
 	else
 	{
-		DebugHeader::ShowNInfo(TEXT("No foliage instances found within the specified radius"));
+		FString CleanupLocation = bCleanInsideRadius ? TEXT("within") : TEXT("outside");
+		DebugHeader::ShowNInfo(FString::Printf(TEXT("No foliage instances found %s the specified radius"), 
+			*CleanupLocation));
 	}
 }
 

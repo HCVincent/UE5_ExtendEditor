@@ -36,6 +36,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FoliageClean", meta = (ClampMin = "0.0"))
 	float FoliageCleanupRadius = 500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FoliageClean")
+	bool bCleanInsideRadius = true;
 #pragma endregion
 
 private:
