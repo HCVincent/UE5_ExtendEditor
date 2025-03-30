@@ -21,6 +21,9 @@ void UCleanActorWidget::CleanActorsFromPoint()
 		return;
 	}
 	
+	// Begin an undoable transaction
+	GEditor->BeginTransaction(FText::FromString(TEXT("Clean Static Mesh Actors")));
+	
 	TArray<AActor*> AllLevelActors = EditorActorSubsystem->GetAllLevelActors();
 	int32 DeletedActorsCount = 0;
 	
@@ -38,6 +41,9 @@ void UCleanActorWidget::CleanActorsFromPoint()
 		// If actor is within radius, delete it
 		if (Distance <= CleanupRadius)
 		{
+			// Record this actor for undo before destroying it
+			Actor->Modify();
+			
 			if (EditorActorSubsystem->DestroyActor(Actor))
 			{
 				DeletedActorsCount++;
@@ -45,10 +51,13 @@ void UCleanActorWidget::CleanActorsFromPoint()
 		}
 	}
 	
+	// End the transaction
+	GEditor->EndTransaction();
+	
 	if (DeletedActorsCount > 0)
 	{
 		DebugHeader::ShowNInfo(TEXT("Successfully deleted ") + 
-			FString::FromInt(DeletedActorsCount) + TEXT(" static mesh actors within radius"));
+			FString::FromInt(DeletedActorsCount) + TEXT(" static mesh actors within radius. Use Ctrl+Z to undo if needed."));
 	}
 	else
 	{
@@ -73,6 +82,9 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 		return;
 	}
 	
+	// Begin an undoable transaction
+	GEditor->BeginTransaction(FText::FromString(TEXT("Clean Foliage Instances")));
+	
 	int32 TotalRemovedInstances = 0;
 	bool bWorldModified = false;
 	
@@ -96,6 +108,9 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 		for (UHierarchicalInstancedStaticMeshComponent* HISMComponent : HISMComponents)
 		{
 			if (!HISMComponent) continue;
+			
+			// Record component for undo
+			HISMComponent->Modify();
 			
 			// Get instance count
 			const int32 InstanceCount = HISMComponent->GetInstanceCount();
@@ -131,15 +146,13 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 					RemovedInstances++;
 				}
 				
-				// Mark component as modified to ensure changes are saved
-				HISMComponent->Modify();
 				bActorModified = true;
 			}
 		}
 		
 		if (bActorModified)
 		{
-			// Mark the actor as modified so changes get saved
+			// Mark the actor as modified
 			Actor->Modify();
 			Actor->MarkPackageDirty();
 			bWorldModified = true;
@@ -147,23 +160,20 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 		}
 	}
 	
+	// End the transaction
+	GEditor->EndTransaction();
+	
 	// Make sure changes are reflected in the editor
 	if (bWorldModified)
 	{
-		// Mark the world as dirty so it will be saved
+		// Mark the world as dirty so changes are tracked
 		World->MarkPackageDirty();
 		
 		// Update the world to reflect changes
 		FEditorDelegates::RefreshAllBrowsers.Broadcast();
 		
-		// Force save the current level
-		// In UE5.3, we use FEditorFileUtils::SaveCurrentLevel()
-		TArray<UPackage*> PackagesToSave;
-		PackagesToSave.Add(World->GetPackage());
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
-		
 		FString CleanupLocation = bCleanInsideRadius ? TEXT("within") : TEXT("outside");
-		DebugHeader::ShowNInfo(FString::Printf(TEXT("Successfully removed and saved %d foliage instances %s radius"),
+		DebugHeader::ShowNInfo(FString::Printf(TEXT("Successfully removed %d foliage instances %s radius. Use Ctrl+Z to undo if needed."),
 			TotalRemovedInstances, *CleanupLocation));
 	}
 	else
