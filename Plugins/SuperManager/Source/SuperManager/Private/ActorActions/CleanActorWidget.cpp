@@ -8,8 +8,6 @@
 #include "InstancedFoliageActor.h"
 #include "EngineUtils.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Editor.h"
-#include "FileHelpers.h"
 
 void UCleanActorWidget::CleanActorsFromPoint()
 {
@@ -20,9 +18,6 @@ void UCleanActorWidget::CleanActorsFromPoint()
 		DebugHeader::ShowNInfo(TEXT("Cleanup radius must be greater than 0"));
 		return;
 	}
-	
-	// Begin an undoable transaction
-	GEditor->BeginTransaction(FText::FromString(TEXT("Clean Static Mesh Actors")));
 	
 	TArray<AActor*> AllLevelActors = EditorActorSubsystem->GetAllLevelActors();
 	int32 DeletedActorsCount = 0;
@@ -41,9 +36,6 @@ void UCleanActorWidget::CleanActorsFromPoint()
 		// If actor is within radius, delete it
 		if (Distance <= CleanupRadius)
 		{
-			// Record this actor for undo before destroying it
-			Actor->Modify();
-			
 			if (EditorActorSubsystem->DestroyActor(Actor))
 			{
 				DeletedActorsCount++;
@@ -51,13 +43,10 @@ void UCleanActorWidget::CleanActorsFromPoint()
 		}
 	}
 	
-	// End the transaction
-	GEditor->EndTransaction();
-	
 	if (DeletedActorsCount > 0)
 	{
 		DebugHeader::ShowNInfo(TEXT("Successfully deleted ") + 
-			FString::FromInt(DeletedActorsCount) + TEXT(" static mesh actors within radius. Use Ctrl+Z to undo if needed."));
+			FString::FromInt(DeletedActorsCount) + TEXT(" static mesh actors within radius"));
 	}
 	else
 	{
@@ -82,9 +71,6 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 		return;
 	}
 	
-	// Begin an undoable transaction
-	GEditor->BeginTransaction(FText::FromString(TEXT("Clean Foliage Instances")));
-	
 	int32 TotalRemovedInstances = 0;
 	bool bWorldModified = false;
 	
@@ -108,9 +94,6 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 		for (UHierarchicalInstancedStaticMeshComponent* HISMComponent : HISMComponents)
 		{
 			if (!HISMComponent) continue;
-			
-			// Record component for undo
-			HISMComponent->Modify();
 			
 			// Get instance count
 			const int32 InstanceCount = HISMComponent->GetInstanceCount();
@@ -152,28 +135,23 @@ void UCleanActorWidget::CleanFoliageActorsFromPoint()
 		
 		if (bActorModified)
 		{
-			// Mark the actor as modified
-			Actor->Modify();
 			Actor->MarkPackageDirty();
 			bWorldModified = true;
 			TotalRemovedInstances += RemovedInstances;
 		}
 	}
 	
-	// End the transaction
-	GEditor->EndTransaction();
-	
 	// Make sure changes are reflected in the editor
 	if (bWorldModified)
 	{
-		// Mark the world as dirty so changes are tracked
+		// Mark the world as dirty
 		World->MarkPackageDirty();
 		
 		// Update the world to reflect changes
 		FEditorDelegates::RefreshAllBrowsers.Broadcast();
 		
 		FString CleanupLocation = bCleanInsideRadius ? TEXT("within") : TEXT("outside");
-		DebugHeader::ShowNInfo(FString::Printf(TEXT("Successfully removed %d foliage instances %s radius. Use Ctrl+Z to undo if needed."),
+		DebugHeader::ShowNInfo(FString::Printf(TEXT("Successfully removed %d foliage instances %s radius"),
 			TotalRemovedInstances, *CleanupLocation));
 	}
 	else
