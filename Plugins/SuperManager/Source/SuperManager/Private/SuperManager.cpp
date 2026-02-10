@@ -15,6 +15,12 @@
 #include "SceneOutlinerModule.h"
 #include "CustomOutlinerColumn/OutlinerSelectionColumn.h"
 #include "CustomUICommands/SuperManagerUICommands.h"
+// --- 新增的引用 ---
+#include "Engine/SkeletalMesh.h"
+#include "Engine/SkinnedAssetCommon.h" // 必须包含这个才能访问 FSkeletalMaterial
+// -----------------
+
+#include "EditorUtilityLibrary.h" // 用于获取选中的资产
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
@@ -24,6 +30,7 @@ void FSuperManagerModule::StartupModule()
 	FSuperManagerUICommands::Register();
 	InitCustomUICommands();
 	InitCBMenuExtention();
+	InitCBAssetMenuExtention(); // <--- 新增：初始化资产扩展
 	InitLevelEditorExtention();
 	InitCustomSelectionEvent();
 	InitSceneOutlinerColumnExtension();
@@ -86,6 +93,15 @@ void FSuperManagerModule::AddCBMenuEntry(FMenuBuilder& MenuBuilder)
 		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.AdvanceDeletion"),	//Custom icon
 		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnAdvanceDeletionButtonClicked) //The actual function to excute
 	);
+	// --- 新增的代码 ---
+	MenuBuilder.AddMenuEntry
+	(
+		FText::FromString(TEXT("List Skeletal Meshes")), // 菜单名称
+		FText::FromString(TEXT("Print names of all skeletal meshes in this folder recursively")), // 提示文本
+		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.DeleteUnusedAssets"), // 暂时复用现有图标，或者填 FSlateIcon() 用默认的
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnProcessSkeletalMeshesButtonClicked) // 绑定的函数
+	);
+	// -----------------
 }
 
 void FSuperManagerModule::OnDeleteUnusedAssetClicked()
@@ -211,6 +227,110 @@ void FSuperManagerModule::OnAdvanceDeletionButtonClicked()
 	FGlobalTabmanager::Get()->TryInvokeTab(FName("AdvanceDeletion"));
 }
 
+// SuperManager.cpp
+
+void FSuperManagerModule::OnProcessSkeletalMeshesButtonClicked()
+{
+	if (FolderPathsSelected.Num() > 1)
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("You can only do this to one folder"));
+		return;
+	}
+
+	const FString SelectedFolderPath = FolderPathsSelected[0];
+
+	// 递归获取所有资产路径
+	TArray<FString> AssetsPathNames = UEditorAssetLibrary::ListAssets(SelectedFolderPath, true, false);
+
+	if (AssetsPathNames.Num() == 0)
+	{
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("No asset found under selected folder"), false);
+		return;
+	}
+
+	FString OutputMessage = TEXT("找到了不匹配材质:\n");
+	int32 ErrorCounter = 0;
+
+	// 建议使用 ScopedSlowTask 显示进度条，因为 LoadAsset 可能较慢
+	FScopedSlowTask SlowTask(AssetsPathNames.Num(), FText::FromString(TEXT("Checking Skeletal Mesh Materials...")));
+	SlowTask.MakeDialog();
+
+	for (const FString& AssetPathName : AssetsPathNames)
+	{
+		SlowTask.EnterProgressFrame(1.f);
+
+		// 1. 快速过滤：先检查是不是 SkeletalMesh，避免加载无用资产
+		FAssetData AssetData = UEditorAssetLibrary::FindAssetData(AssetPathName);
+		if (!AssetData.IsValid() || AssetData.AssetClassPath.GetAssetName() != FName("SkeletalMesh"))
+		{
+			continue;
+		}
+
+		// 2. 加载资产 (必须加载才能访问材质槽)
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(UEditorAssetLibrary::LoadAsset(AssetPathName));
+		if (!SkeletalMesh) continue;
+
+		// 3. 检查材质槽
+		const TArray<FSkeletalMaterial>& Materials = SkeletalMesh->GetMaterials();
+		bool bHasIssue = false;
+		FString AssetIssueString = FString::Printf(TEXT("\n[Asset]: %s\n[Path]: %s"),
+			*SkeletalMesh->GetName(),
+			*AssetData.PackageName.ToString());
+
+		for (int32 i = 0; i < Materials.Num(); ++i)
+		{
+			const FSkeletalMaterial& SkeletalMaterial = Materials[i];
+
+			// 获取槽名 (是在建模软件里给面命名的名字)
+			FString SlotName = SkeletalMaterial.MaterialSlotName.ToString();
+
+			// 获取实际赋予的材质
+			UMaterialInterface* AssignedMaterial = SkeletalMaterial.MaterialInterface;
+
+			// 检查 1: 材质是否为空
+			if (!AssignedMaterial)
+			{
+				AssetIssueString.Append(FString::Printf(TEXT("\n  - Slot %d ('%s') is EMPTY"), i, *SlotName));
+				bHasIssue = true;
+				continue;
+			}
+
+			FString MaterialName = AssignedMaterial->GetName();
+
+			// 检查 2: 材质名是否包含槽名 (区分大小写)
+			// 必须完全相等 (严格模式)
+			// ESearchCase::IgnoreCase 表示忽略大小写 (MI_Quinn_01 和 mi_quinn_01 算一样)
+			// 如果你需要连大小写都必须一样，去掉 ESearchCase::IgnoreCase 即可
+			if (!MaterialName.Equals(SlotName))
+			{
+				AssetIssueString.Append(FString::Printf(TEXT("\n  - Slot %d ('%s') 不匹配材质 ('%s')"),
+					i, *SlotName, *MaterialName));
+				bHasIssue = true;
+			}
+		}
+
+		// 如果该资产有问题，记录下来
+		if (bHasIssue)
+		{
+			OutputMessage.Append(AssetIssueString);
+			ErrorCounter++;
+		}
+	}
+
+	if (ErrorCounter > 0)
+	{
+		DebugHeader::ShowNInfo(TEXT("Found ") + FString::FromInt(ErrorCounter) + TEXT(" assets with issues. Check Output Log."));
+		DebugHeader::PrtLog(OutputMessage);
+
+		// 可选：弹窗提示
+		DebugHeader::ShowMsgDialog(EAppMsgType::Ok, TEXT("找到了不匹配材质! 具体看output log窗口"));
+	}
+	else
+	{
+		DebugHeader::ShowNInfo(TEXT("All Skeletal Meshes look good!"));
+	}
+}
+
 void FSuperManagerModule::FixUpRedirectors()
 {
 	TArray<UObjectRedirector*> RedirectorsToFixArray;
@@ -219,7 +339,7 @@ void FSuperManagerModule::FixUpRedirectors()
 	FARFilter Filter;
 	Filter.bRecursivePaths = true;
 	Filter.PackagePaths.Emplace("/Game");
-	Filter.ClassNames.Emplace("ObjectRedirector");
+	Filter.ClassPaths.Add(UObjectRedirector::StaticClass()->GetClassPathName());
 	TArray<FAssetData> OutRedirectors;
 	AssetRegistryModule.Get().GetAssets(Filter, OutRedirectors);
 	for (const FAssetData& RedirectorData : OutRedirectors)
@@ -234,6 +354,145 @@ void FSuperManagerModule::FixUpRedirectors()
 	AssetToolsModule.Get().FixupReferencers(RedirectorsToFixArray);
 }
 
+#pragma region ContentBrowserMenuExtention
+
+// ... 原有的文件夹扩展代码 ...
+
+// 1. 初始化：注册资产视图的菜单扩展
+void FSuperManagerModule::InitCBAssetMenuExtention()
+{
+	FContentBrowserModule& ContentBrowserModule =
+		FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+	// 获取 AssetView (资产视图) 的扩展列表
+	TArray<FContentBrowserMenuExtender_SelectedAssets>& AssetMenuExtenders =
+		ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
+
+	// 添加我们的委托
+	AssetMenuExtenders.Add(FContentBrowserMenuExtender_SelectedAssets::
+		CreateRaw(this, &FSuperManagerModule::CustomCBAssetMenuExtender));
+}
+
+// 2. 扩展器：决定何时显示菜单，以及在什么位置显示
+TSharedRef<FExtender> FSuperManagerModule::CustomCBAssetMenuExtender(const TArray<FAssetData>& SelectedAssets)
+{
+	TSharedRef<FExtender> MenuExtender(new FExtender());
+
+	// 只有当选中的资产包含 SkeletalMesh 时，才显示这个菜单
+	bool bAnySkeletalMeshSelected = false;
+	for (const FAssetData& Asset : SelectedAssets)
+	{
+		// 兼容 UE5.1+ 写法，如果是旧版本用 Asset.AssetClass
+		if (Asset.AssetClassPath.GetAssetName() == FName("SkeletalMesh"))
+		{
+			bAnySkeletalMeshSelected = true;
+			break;
+		}
+	}
+
+	if (bAnySkeletalMeshSelected)
+	{
+		// 将菜单项添加到 "GetAssetActions" (通常是 Common Asset Actions 区域) 后面
+		MenuExtender->AddMenuExtension(
+			FName("CommonAssetActions"),
+			EExtensionHook::After,
+			TSharedPtr<FUICommandList>(),
+			FMenuExtensionDelegate::CreateRaw(this, &FSuperManagerModule::AddCBAssetMenuEntry)
+		);
+	}
+
+	return MenuExtender;
+}
+
+// 3. 构建菜单项
+void FSuperManagerModule::AddCBAssetMenuEntry(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		FText::FromString(TEXT("Check Material Mismatch")), // 菜单名
+		FText::FromString(TEXT("Check if material slot names match assigned materials")), // 提示
+		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.DeleteUnusedAssets"), // 图标
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnCheckSkeletalMeshMaterials) // 执行函数
+	);
+}
+
+// 4. 执行函数：检查逻辑
+// 在 SuperManager.cpp 中
+
+void FSuperManagerModule::OnCheckSkeletalMeshMaterials()
+{
+	// 获取当前选中的所有资产
+	TArray<FAssetData> SelectedAssets = UEditorUtilityLibrary::GetSelectedAssetData();
+
+	FString AllErrorMessages = ""; // 用于收集所有的错误信息
+	int32 ErrorCounter = 0;
+
+	for (const FAssetData& AssetData : SelectedAssets)
+	{
+		// 再次确认类型
+		if (AssetData.AssetClassPath.GetAssetName() != FName("SkeletalMesh")) continue;
+
+		// 加载资产
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(AssetData.GetAsset());
+		if (!SkeletalMesh) continue;
+
+		const TArray<FSkeletalMaterial>& Materials = SkeletalMesh->GetMaterials();
+		bool bHasIssue = false;
+
+		// 准备当前资产的错误报告头部
+		FString AssetIssueString = FString::Printf(TEXT("Asset: %s\n"), *SkeletalMesh->GetName());
+
+		for (int32 i = 0; i < Materials.Num(); ++i)
+		{
+			const FSkeletalMaterial& SkeletalMaterial = Materials[i];
+			FString SlotName = SkeletalMaterial.MaterialSlotName.ToString();
+			UMaterialInterface* AssignedMaterial = SkeletalMaterial.MaterialInterface;
+
+			// 检查 1: 材质为空
+			if (!AssignedMaterial)
+			{
+				AssetIssueString.Append(FString::Printf(TEXT("  - Slot %d ('%s') is EMPTY\n"), i, *SlotName));
+				bHasIssue = true;
+			}
+			else
+			{
+				FString MaterialName = AssignedMaterial->GetName();
+
+				// 检查 2: 材质名不包含槽名
+				// 必须完全相等 (严格模式)
+				// ESearchCase::IgnoreCase 表示忽略大小写 (MI_Quinn_01 和 mi_quinn_01 算一样)
+				// 如果你需要连大小写都必须一样，去掉 ESearchCase::IgnoreCase 即可
+				if (!MaterialName.Equals(SlotName))
+				{
+					AssetIssueString.Append(FString::Printf(TEXT("  - 槽位 %d ('%s') 不匹配材质 ('%s')\n"),
+						i, *SlotName, *MaterialName));
+					bHasIssue = true;
+				}
+			}
+		}
+
+		// 如果当前资产有问题，将信息加入总报告中
+		if (bHasIssue)
+		{
+			AllErrorMessages.Append(AssetIssueString);
+			AllErrorMessages.Append(TEXT("\n")); // 资产之间空一行
+			ErrorCounter++;
+		}
+	}
+
+	if (ErrorCounter > 0)
+	{
+		// 直接弹窗显示收集到的所有错误信息
+		// 注意：UE5.3+ FMessageDialog::Open 的 Title 参数直接传值 (FText)，不需要取地址 (&)
+		const FText DialogTitle = FText::FromString(TEXT("Material Mismatch Report"));
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(AllErrorMessages), DialogTitle);
+	}
+	else
+	{
+		DebugHeader::ShowNInfo(TEXT("Selected Skeletal Meshes are good!"));
+	}
+}
+
+#pragma endregion
 #pragma endregion
 
 #pragma region CustomEditorTab
@@ -512,7 +771,7 @@ void FSuperManagerModule::RefreshSceneOutliner()
 {
 	FLevelEditorModule& LevelEditorModule =
 		FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-	TSharedPtr<ISceneOutliner> SceneOutliner = LevelEditorModule.GetFirstLevelEditor()->GetSceneOutliner();
+	TSharedPtr<ISceneOutliner> SceneOutliner = LevelEditorModule.GetFirstLevelEditor()->GetMostRecentlyUsedSceneOutliner();
 	if (SceneOutliner.IsValid())
 	{
 		SceneOutliner->FullRefresh();

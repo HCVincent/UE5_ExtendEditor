@@ -24,7 +24,7 @@ namespace  DebugHeader
 		if (bShowMsgAsWarning)
 		{
 			FText MsgTitle = FText::FromString(TEXT("Warning"));
-			return FMessageDialog::Open(MsgType, FText::FromString(Message), &MsgTitle);
+			return FMessageDialog::Open(MsgType, FText::FromString(Message), MsgTitle);
 		}
 		else
 		{
