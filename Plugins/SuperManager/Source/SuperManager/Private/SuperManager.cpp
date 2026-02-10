@@ -18,6 +18,7 @@
 // --- 新增的引用 ---
 #include "Engine/SkeletalMesh.h"
 #include "Engine/SkinnedAssetCommon.h" // 必须包含这个才能访问 FSkeletalMaterial
+#include "Engine/StaticMesh.h" // 新增：用于访问静态网格体
 // -----------------
 
 #include "EditorUtilityLibrary.h" // 用于获取选中的资产
@@ -378,19 +379,21 @@ TSharedRef<FExtender> FSuperManagerModule::CustomCBAssetMenuExtender(const TArra
 {
 	TSharedRef<FExtender> MenuExtender(new FExtender());
 
-	// 只有当选中的资产包含 SkeletalMesh 时，才显示这个菜单
-	bool bAnySkeletalMeshSelected = false;
+	// --- 修改开始：不仅仅是 SkeletalMesh，还要检查 StaticMesh ---
+	bool bAnySupportedAssetSelected = false; // 改个名字，叫“是否选中了支持的资产”
+
 	for (const FAssetData& Asset : SelectedAssets)
 	{
-		// 兼容 UE5.1+ 写法，如果是旧版本用 Asset.AssetClass
-		if (Asset.AssetClassPath.GetAssetName() == FName("SkeletalMesh"))
+		// 同时检查 SkeletalMesh 和 StaticMesh
+		if (Asset.AssetClassPath.GetAssetName() == FName("SkeletalMesh") ||
+			Asset.AssetClassPath.GetAssetName() == FName("StaticMesh"))
 		{
-			bAnySkeletalMeshSelected = true;
+			bAnySupportedAssetSelected = true;
 			break;
 		}
 	}
 
-	if (bAnySkeletalMeshSelected)
+	if (bAnySupportedAssetSelected) // 如果选中了支持的资产（骨骼或静态网格）
 	{
 		// 将菜单项添加到 "GetAssetActions" (通常是 Common Asset Actions 区域) 后面
 		MenuExtender->AddMenuExtension(
@@ -400,6 +403,7 @@ TSharedRef<FExtender> FSuperManagerModule::CustomCBAssetMenuExtender(const TArra
 			FMenuExtensionDelegate::CreateRaw(this, &FSuperManagerModule::AddCBAssetMenuEntry)
 		);
 	}
+	// --- 修改结束 ---
 
 	return MenuExtender;
 }
@@ -411,84 +415,106 @@ void FSuperManagerModule::AddCBAssetMenuEntry(FMenuBuilder& MenuBuilder)
 		FText::FromString(TEXT("Check Material Mismatch")), // 菜单名
 		FText::FromString(TEXT("Check if material slot names match assigned materials")), // 提示
 		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.DeleteUnusedAssets"), // 图标
-		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnCheckSkeletalMeshMaterials) // 执行函数
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnCheckMaterialMismatch) // 执行函数
 	);
 }
 
 // 4. 执行函数：检查逻辑
 // 在 SuperManager.cpp 中
 
-void FSuperManagerModule::OnCheckSkeletalMeshMaterials()
+void FSuperManagerModule::OnCheckMaterialMismatch()
 {
-	// 获取当前选中的所有资产
 	TArray<FAssetData> SelectedAssets = UEditorUtilityLibrary::GetSelectedAssetData();
-
-	FString AllErrorMessages = ""; // 用于收集所有的错误信息
+	FString AllErrorMessages = "";
 	int32 ErrorCounter = 0;
 
 	for (const FAssetData& AssetData : SelectedAssets)
 	{
-		// 再次确认类型
-		if (AssetData.AssetClassPath.GetAssetName() != FName("SkeletalMesh")) continue;
-
-		// 加载资产
-		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(AssetData.GetAsset());
-		if (!SkeletalMesh) continue;
-
-		const TArray<FSkeletalMaterial>& Materials = SkeletalMesh->GetMaterials();
 		bool bHasIssue = false;
+		FString AssetIssueString;
 
-		// 准备当前资产的错误报告头部
-		FString AssetIssueString = FString::Printf(TEXT("Asset: %s\n"), *SkeletalMesh->GetName());
-
-		for (int32 i = 0; i < Materials.Num(); ++i)
+		// ---------------- 类型 A: Skeletal Mesh ----------------
+		if (AssetData.AssetClassPath.GetAssetName() == FName("SkeletalMesh"))
 		{
-			const FSkeletalMaterial& SkeletalMaterial = Materials[i];
-			FString SlotName = SkeletalMaterial.MaterialSlotName.ToString();
-			UMaterialInterface* AssignedMaterial = SkeletalMaterial.MaterialInterface;
+			USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(AssetData.GetAsset());
+			if (!SkeletalMesh) continue;
 
-			// 检查 1: 材质为空
-			if (!AssignedMaterial)
-			{
-				AssetIssueString.Append(FString::Printf(TEXT("  - Slot %d ('%s') is EMPTY\n"), i, *SlotName));
-				bHasIssue = true;
-			}
-			else
-			{
-				FString MaterialName = AssignedMaterial->GetName();
+			const TArray<FSkeletalMaterial>& Materials = SkeletalMesh->GetMaterials();
+			AssetIssueString = FString::Printf(TEXT("Skeletal Mesh: %s\n"), *SkeletalMesh->GetName());
 
-				// 检查 2: 材质名不包含槽名
-				// 必须完全相等 (严格模式)
-				// ESearchCase::IgnoreCase 表示忽略大小写 (MI_Quinn_01 和 mi_quinn_01 算一样)
-				// 如果你需要连大小写都必须一样，去掉 ESearchCase::IgnoreCase 即可
-				if (!MaterialName.Equals(SlotName))
+			for (int32 i = 0; i < Materials.Num(); ++i)
+			{
+				const FSkeletalMaterial& SkeletalMaterial = Materials[i];
+				FString SlotName = SkeletalMaterial.MaterialSlotName.ToString();
+				UMaterialInterface* AssignedMaterial = SkeletalMaterial.MaterialInterface;
+
+				if (!AssignedMaterial)
 				{
-					AssetIssueString.Append(FString::Printf(TEXT("  - 槽位 %d ('%s') 不匹配材质 ('%s')\n"),
-						i, *SlotName, *MaterialName));
+					AssetIssueString.Append(FString::Printf(TEXT("  - Slot %d ('%s') is EMPTY\n"), i, *SlotName));
 					bHasIssue = true;
+				}
+				else
+				{
+					if (!AssignedMaterial->GetName().Equals(SlotName, ESearchCase::IgnoreCase))
+					{
+						AssetIssueString.Append(FString::Printf(TEXT("  - Slot %d ('%s') 不匹配材质 ('%s')\n"),
+							i, *SlotName, *AssignedMaterial->GetName()));
+						bHasIssue = true;
+					}
+				}
+			}
+		}
+		// ---------------- 类型 B: Static Mesh (新增) ----------------
+		else if (AssetData.AssetClassPath.GetAssetName() == FName("StaticMesh"))
+		{
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(AssetData.GetAsset());
+			if (!StaticMesh) continue;
+
+			// Static Mesh 使用 GetStaticMaterials()
+			const TArray<FStaticMaterial>& Materials = StaticMesh->GetStaticMaterials();
+			AssetIssueString = FString::Printf(TEXT("Static Mesh: %s\n"), *StaticMesh->GetName());
+
+			for (int32 i = 0; i < Materials.Num(); ++i)
+			{
+				const FStaticMaterial& StaticMaterial = Materials[i];
+				FString SlotName = StaticMaterial.MaterialSlotName.ToString();
+				UMaterialInterface* AssignedMaterial = StaticMaterial.MaterialInterface;
+
+				if (!AssignedMaterial)
+				{
+					AssetIssueString.Append(FString::Printf(TEXT("  - Slot %d ('%s') is EMPTY\n"), i, *SlotName));
+					bHasIssue = true;
+				}
+				else
+				{
+					// 同样的严格匹配检查
+					if (!AssignedMaterial->GetName().Equals(SlotName, ESearchCase::IgnoreCase))
+					{
+						AssetIssueString.Append(FString::Printf(TEXT("  - Slot %d ('%s') 不匹配材质 ('%s')\n"),
+							i, *SlotName, *AssignedMaterial->GetName()));
+						bHasIssue = true;
+					}
 				}
 			}
 		}
 
-		// 如果当前资产有问题，将信息加入总报告中
+		// ---------------- 汇总错误 ----------------
 		if (bHasIssue)
 		{
 			AllErrorMessages.Append(AssetIssueString);
-			AllErrorMessages.Append(TEXT("\n")); // 资产之间空一行
+			AllErrorMessages.Append(TEXT("\n"));
 			ErrorCounter++;
 		}
 	}
 
 	if (ErrorCounter > 0)
 	{
-		// 直接弹窗显示收集到的所有错误信息
-		// 注意：UE5.3+ FMessageDialog::Open 的 Title 参数直接传值 (FText)，不需要取地址 (&)
 		const FText DialogTitle = FText::FromString(TEXT("Material Mismatch Report"));
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(AllErrorMessages), DialogTitle);
 	}
 	else
 	{
-		DebugHeader::ShowNInfo(TEXT("Selected Skeletal Meshes are good!"));
+		DebugHeader::ShowNInfo(TEXT("Selected Meshes are good!"));
 	}
 }
 

@@ -32,7 +32,7 @@ private:
 	void InitCBAssetMenuExtention(); // 初始化资产菜单扩展
 	TSharedRef<FExtender> CustomCBAssetMenuExtender(const TArray<FAssetData>& SelectedAssets); // 定义扩展逻辑
 	void AddCBAssetMenuEntry(class FMenuBuilder& MenuBuilder); // 添加菜单项
-	void OnCheckSkeletalMeshMaterials(); // 点击后执行的函数
+	void OnCheckMaterialMismatch(); // 点击后执行的函数
 	// ---------------------------
 	void FixUpRedirectors();
 
