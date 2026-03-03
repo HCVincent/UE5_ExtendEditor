@@ -73,27 +73,27 @@ TSharedRef<FExtender> FSuperManagerModule::CustomCBMenuExtender(const TArray<FSt
 
 void FSuperManagerModule::AddCBMenuEntry(FMenuBuilder& MenuBuilder)
 {
-	MenuBuilder.AddMenuEntry
-	(
-		FText::FromString(TEXT("Delete Unused Assets")), //Title text for menu entry
-		FText::FromString(TEXT("Safely delete all unused assets under folder")), //Tooltip text
-		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.DeleteUnusedAssets"),	//Custom icon
-		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteUnusedAssetClicked) //The actual function to excute
-	);
-	MenuBuilder.AddMenuEntry
-	(
-		FText::FromString(TEXT("Delete Empty Folders")), //Title text for menu entry
-		FText::FromString(TEXT("Safely delete all empty folders")), //Tooltip text
-		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.DeleteEmptyFolders"),	//Custom icon
-		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked) //The actual function to excute
-	);
-	MenuBuilder.AddMenuEntry
-	(
-		FText::FromString(TEXT("Advance Deletion")), //Title text for menu entry
-		FText::FromString(TEXT("List assets by specific condition in a tab for deleting")), //Tooltip text
-		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.AdvanceDeletion"),	//Custom icon
-		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnAdvanceDeletionButtonClicked) //The actual function to excute
-	);
+	//MenuBuilder.AddMenuEntry
+	//(
+	//	FText::FromString(TEXT("Delete Unused Assets")), //Title text for menu entry
+	//	FText::FromString(TEXT("Safely delete all unused assets under folder")), //Tooltip text
+	//	FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.DeleteUnusedAssets"),	//Custom icon
+	//	FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteUnusedAssetClicked) //The actual function to excute
+	//);
+	//MenuBuilder.AddMenuEntry
+	//(
+	//	FText::FromString(TEXT("Delete Empty Folders")), //Title text for menu entry
+	//	FText::FromString(TEXT("Safely delete all empty folders")), //Tooltip text
+	//	FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.DeleteEmptyFolders"),	//Custom icon
+	//	FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked) //The actual function to excute
+	//);
+	//MenuBuilder.AddMenuEntry
+	//(
+	//	FText::FromString(TEXT("Advance Deletion")), //Title text for menu entry
+	//	FText::FromString(TEXT("List assets by specific condition in a tab for deleting")), //Tooltip text
+	//	FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "ContentBrowser.AdvanceDeletion"),	//Custom icon
+	//	FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnAdvanceDeletionButtonClicked) //The actual function to excute
+	//);
 	// --- 新增的代码 ---
 	MenuBuilder.AddMenuEntry
 	(
@@ -556,7 +556,7 @@ TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelected
 		//Don't touch root folder
 		if (AssetPathName.Contains(TEXT("Developers")) ||
 			AssetPathName.Contains(TEXT("Collections")) ||
-			AssetPathName.Contains(TEXT("__ExternalActors__")) ||
+			AssetPathName.Contains(TEXT("__ExternalActors__")) || 
 			AssetPathName.Contains(TEXT("__ExternalObjects__")))
 		{
 			continue;
